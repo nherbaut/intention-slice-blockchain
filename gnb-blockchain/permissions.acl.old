@@ -1,0 +1,52 @@
+/**
+ * Access control rules for tutorial-network
+ */
+
+
+rule adminUber{
+  description: "admin can do everything"
+  participant(t): "org.hyperledger.composer.system.NetworkAdmin#admin"
+  operation: ALL
+  resource(v) : "**"
+  condition: (True)
+  action: ALLOW
+}
+
+
+ rule SliceOwnerOnlyhaveAccessToTheirOwnIntention {
+  description: "SliceOwnerOnlyhaveAccessToTheirOwnSlices"
+  participant(t): "top.nextnet.gnb.SliceOwner"
+  operation: ALL
+  resource(v): "top.nextnet.gnb.Intention"
+  condition: (v.owner.getIdentifier() != t.getIdentifier())
+  action: DENY
+}
+
+
+ rule ResourceProviderOnyHaveAccessToTheirResource {
+  description: "Resource provider have only access to their network"
+  participant(t): "top.nextnet.gnb.ResourceProvider"
+  operation: ALL
+  resource(v): "top.nextnet.gnb.ResourceProvider"
+  condition: (v.getIdentifier() != t.getIdentifier())
+  action: DENY
+}
+
+
+ rule ResourceProviderOnyHaveAccessToTheirResourceNetwork {
+  description: "Resource provider have only access to their network"
+  participant(t): "top.nextnet.gnb.ResourceProvider"
+  operation: ALL
+  resource(v): "top.nextnet.gnb.ResourceNetwork"
+  condition: (v.owner.getIdentifier() != t.getIdentifier())
+  action: DENY
+}
+
+
+rule SystemACL {
+  description:  "System ACL to permit all access"
+  participant: "ANY"
+  operation: ALL
+  resource: "**"
+  action: ALLOW
+}

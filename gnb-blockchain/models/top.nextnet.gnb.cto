@@ -1,0 +1,146 @@
+/**
+ * My commodity trading network
+ */
+namespace top.nextnet.gnb
+
+participant SliceOwner identified by sliceOwnerId{
+  o String sliceOwnerId
+  o String name
+  --> Intention itention optional
+}
+
+participant ResourceProvider identified by id{
+  o String id
+  --> ResourceNetwork network optional
+}
+
+asset Intention identified by intentionId{
+  o Boolean public default=false
+  o String intentionId
+  o String intentionData
+  --> SliceOwner owner 
+  --> Service[] services optional
+}
+
+asset Service identified by serviceId{
+  o String serviceId
+  --> Intention itention
+  --> ServiceFragment[] fragments optional
+}
+
+asset ServiceFragment identified by id{
+  o String id
+  --> SliceRequest[] slices
+}
+
+asset ContentDeliveryService extends Service { 
+  o String origin
+  o String clientGroup
+}
+
+abstract asset SliceRequest identified by SliceRequestId{
+  o String SliceRequestId
+  --> Service service
+}
+
+asset TransportSliceRequest extends SliceRequest{
+  o Double delay
+  o Double latency
+}
+
+asset ComputesliceRequest extends SliceRequest{
+  o Double cpu
+  o Double ram
+}
+
+asset RadioSliceRequest extends SliceRequest{
+  o String radioType
+}
+
+
+
+asset ResourceNetwork identified by id{
+  o String id
+  --> ResourceProvider owner
+  
+}
+
+abstract asset Resource identified by id{
+  o String id
+  o Double price
+}
+
+asset TransportResource extends Resource{
+  o String src
+  o String dst
+  o Double delay
+  o Double latency
+}
+
+asset ComputeResource extends Resource{
+  o String cpu
+  o String ram
+  o String location
+}
+
+asset RadioResource extends Resource{
+  o String radioType
+}
+
+asset Bid identified by id{
+  o String id
+  --> ServiceFragment fragment
+}
+
+
+
+event NewIntentionEvent {
+  o String message
+}
+
+transaction PublishIntention {
+  --> Intention target
+}
+
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * Write your model definitions here
+ */
+
+//namespace top.nextnet.gnb
+//
+//participant SampleParticipant identified by participantId {
+//  o String participantId
+//  o String firstName
+//  o String lastName
+//}
+//
+//asset SampleAsset identified by assetId {
+//  o String assetId
+//  --> SampleParticipant owner
+//  o String value
+//}
+//
+//transaction SampleTransaction {
+//  --> SampleAsset asset
+//  o String newValue
+//}
+//
+//event SampleEvent {
+//  --> SampleAsset asset
+//  o String oldValue
+//  o String newValue
+//}
