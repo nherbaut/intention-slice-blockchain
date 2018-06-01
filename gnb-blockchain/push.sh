@@ -1,3 +1,5 @@
+echo $(( $(cat version.info)+1)) > version.info && sed "s/TPL_VERSION/$(cat version.info)/g" package.json.tpl  > package.json
+
 VERSION=`sed -e 's/^"//' -e 's/"$//' <<< $(jq ".version" package.json )`
 NAME=`sed -e 's/^"//' -e 's/"$//' <<< $(jq ".name" package.json )`
 echo "upgrading $NAME to $VERSION"

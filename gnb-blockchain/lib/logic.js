@@ -21,6 +21,7 @@ async function intentionPublicationProcessor(intention) {
     var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewIntentionEvent');
     basicEvent.message = "emiting intention"
     emit(basicEvent);
+    console.log(basicEvent)
 
     let intentionRegistry = await getAssetRegistry("top.nextnet.gnb.Intention");
     
@@ -28,6 +29,7 @@ async function intentionPublicationProcessor(intention) {
     await intentionRegistry.update(intention.target)
     basicEvent.message = "intention emited"
     emit(basicEvent)
+    console.log(basicEvent)
 
 
 

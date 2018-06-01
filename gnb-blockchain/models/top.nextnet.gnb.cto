@@ -90,11 +90,11 @@ asset RadioResource extends Resource{
 asset Bid identified by id{
   o String id
   --> ServiceFragment fragment
-}
+} 
 
 
 
-event NewIntentionEvent {
+event NewIntentionEvent extends Event{
   o String message
 }
 

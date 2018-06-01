@@ -1,0 +1,1 @@
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ "$class": "top.nextnet.gnb.PublishIntention",    "target": "top.nextnet.gnb.Intention#9555",    "timestamp": "2018-06-01T10:03:25.472Z"  }' 'http://localhost:3000/api/PublishIntention'
