@@ -1,0 +1,16 @@
+{
+  "name": "slice-owner",
+  "version": "1.0.0",
+  "description": "",
+  "main": "slice-owner.js",
+  "scripts": {
+    "start": "node ./slice-owner.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cli-table": "^0.3.1",
+    "composer-client": "^0.19.7",
+    "prettyjson": "^1.2.1"
+  }
+}

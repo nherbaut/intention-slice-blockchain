@@ -1,4 +1,5 @@
 **/node_modules/*
 **/*.bna
+**/*.card
 **/.*
 **/composer-logs
