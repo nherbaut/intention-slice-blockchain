@@ -4,7 +4,7 @@ const BusinessNetworkConnection = require('composer-client').BusinessNetworkConn
 const winston = require('winston');
 var yaml = require('js-yaml')
 var fs = require('fs');
-
+var _ = require('underscore');
 var rn = require('random-number');
 var chalk = require('chalk');
 let config = require('config').get('event-app');
@@ -43,7 +43,7 @@ class SitechainListener {
 		var rp = rps[0];
 		if (rp.resources != undefined) {
 			for (let r of rp.resources) {
-				console.log(r.getIdentifier())
+				//console.log(r.getIdentifier())
 			}
 		}
 
@@ -90,11 +90,18 @@ class SitechainListener {
 
 			let update_found = false
 			for (let r of rp.resources) {
-				console.log("is " + r.getIdentifier() + " the same as " + resource.id)
+				//console.log("is " + r.getIdentifier() + " the same as " + resource.id)
 				if (r.getIdentifier() == resource.id) {
+					var rr=await registry.get(r.getIdentifier())
+					update_found = true;
+					if (!_.isEqual(resource, rr)) {
+						await registry.update(resource);
+						console.log("updated "+ resource.id)
+					}
+					else{
+						console.log("update skipped "+ resource.id)
+					}
 
-					update_found = true
-					await registry.update(resource);
 					break;
 				}
 			}
@@ -126,6 +133,7 @@ class SitechainListener {
 		  */
 	listen() {
 		this.bizNetworkConnection.on('event', (evt) => {
+
 			console.log(evt);
 			let options = {
 				properties: { key: 'value' }
