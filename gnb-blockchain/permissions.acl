@@ -2,16 +2,14 @@
  * Access control rules for tutorial-network
  */
 
-
-rule adminUber{
-  description: "admin can do everything"
-  participant(t): "org.hyperledger.composer.system.NetworkAdmin"
+rule debug{
+    description: "SliceOwnerOnlyhaveAccessToTheirOwnSlices"
+  participant(p): "top.nextnet.gnb.ResourceProvider"
   operation: ALL
-  resource(v) : "**"
-  condition: (True)
+  resource(r): "top.nextnet.gnb.ResourceProvider"
+  condition: (p.getIdentifier()==r.getIdentifier())
   action: ALLOW
 }
-
 
  rule SliceOwnerOnlyhaveAccessToTheirOwnIntention {
   description: "SliceOwnerOnlyhaveAccessToTheirOwnSlices"
@@ -26,47 +24,44 @@ rule adminUber{
 
  rule ResourceProviderOnyHaveAccessToTheirResource {
   description: "Resource provider have only access to their network"
-  participant(t): "top.nextnet.gnb.ResourceProvider"
+  participant: "top.nextnet.gnb.ResourceProvider"
   operation: ALL
-  resource(v): "top.nextnet.gnb.ResourceProvider"
-  condition: (v.getIdentifier() == t.getIdentifier())
+  resource: "top.nextnet.gnb.Resource"
   action: ALLOW
 }
 
 
- rule ResourceProviderOnyHaveAccessToTheirResourceNetwork {
+
+ rule RPCantAccessotherRP {
   description: "Resource provider have only access to their network"
-  participant(t): "top.nextnet.gnb.ResourceProvider"
-  operation: ALL
-  resource(v): "top.nextnet.gnb.ResourceNetwork"
-  condition: (v.owner.getIdentifier() == t.getIdentifier())
+  participant: "org.hyperledger.composer.system.Participant"
+  operation: ALL  
+  resource: "top.nextnet.gnb.**"
+  condition: (True)
   action: ALLOW
 }
 
-
-
-rule SystemACL1 {
-  description:  "System ACL to permit all access"
-  participant: "top.nextnet.gnb.SliceOwner"
-  operation: READ
-  resource: "org.hyperledger.composer.system.Network"
-  action: ALLOW
+rule SystemACL {
+    description:  "System ACL to permit all access"
+    participant: "org.hyperledger.composer.system.Participant"
+    operation: ALL
+    resource: "org.hyperledger.composer.system.**"
+    action: ALLOW
 }
 
-rule SystemACL2 {
-  description:  "System ACL to permit all access"
-  participant: "top.nextnet.gnb.SliceOwner"
-  operation: READ
-  resource: "org.hyperledger.composer.system.AssetRegistry"
-  action: ALLOW
+rule NetworkAdminUser {
+    description: "Grant business network administrators full access to user resources"
+    participant: "org.hyperledger.composer.system.NetworkAdmin"
+    operation: ALL
+    resource: "**"
+    action: ALLOW
 }
 
-
-rule SystemACL3 {
-  description:  "System ACL to permit all access"
-  participant: "top.nextnet.gnb.SliceOwner"
-  operation: READ
-  resource: "org.hyperledger.composer.system.AssetRegistry"
-  action: ALLOW
+rule NetworkAdminSystem {
+    description: "Grant business network administrators full access to system resources"
+    participant: "org.hyperledger.composer.system.NetworkAdmin"
+    operation: ALL
+    resource: "org.hyperledger.composer.system.**"
+    action: ALLOW
 }
 

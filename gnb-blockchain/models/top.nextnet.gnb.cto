@@ -11,7 +11,7 @@ participant SliceOwner identified by sliceOwnerId{
 
 participant ResourceProvider identified by id{
   o String id
-  --> ResourceNetwork network optional
+  --> Resource[] resources optional
 }
 
 asset Intention identified by intentionId{
@@ -57,13 +57,6 @@ asset RadioSliceRequest extends SliceRequest{
   o String radioType
 }
 
-
-
-asset ResourceNetwork identified by id{
-  o String id
-  --> ResourceProvider owner
-  
-}
 
 abstract asset Resource identified by id{
   o String id
