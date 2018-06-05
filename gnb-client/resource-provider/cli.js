@@ -2,6 +2,9 @@
 
 const BusinessNetworkConnection = require('composer-client').BusinessNetworkConnection;
 const winston = require('winston');
+var yaml = require('js-yaml')
+var fs = require('fs');
+
 var rn = require('random-number');
 var chalk = require('chalk');
 let config = require('config').get('event-app');
@@ -25,8 +28,10 @@ class SitechainListener {
 		this.businessNetworkDefinition = await this.bizNetworkConnection.connect(cardname);
 		this.rpRegistry = await this.bizNetworkConnection.getParticipantRegistry("top.nextnet.gnb.ResourceProvider");
 		this.transportResourceRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.TransportResource");
+		this.computeResourceRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.ComputeResource");
+		this.radioResourceRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.RadioResource");
 
-		setInterval(this.updatedb.bind(this), 5000);
+		setInterval(this.updatedb.bind(this), 20000);
 
 	}
 
@@ -42,25 +47,83 @@ class SitechainListener {
 			}
 		}
 
+		let buffer = fs.readFileSync("net.yaml", 'utf8');
 
+		let netContent = yaml.load(buffer);
 		let factory = this.businessNetworkDefinition.getFactory();
-		let rand_int = rn(rnoptions)
-		let tr = factory.newResource('top.nextnet.gnb', 'TransportResource', "" + rand_int);
-		tr.src = "a"
-		tr.dst = "b"
-		tr.delay = 10
-		tr.latency = 20
-		tr.price = 0
-		await this.transportResourceRegistry.add(tr);
-		rp.resources.push(factory.newRelationship('top.nextnet.gnb', 'TransportResource', "" + rand_int));
-		await this.rpRegistry.update(rp)
+
+		var resource = null
+		var registry = null
+		var assetType = null
+		for (let edge of netContent.edges) {
+			switch (edge.type) {
+				case "core":
+					assetType = 'ComputeResource'
+					resource = factory.newResource('top.nextnet.gnb', assetType, edge.id);
+					resource.computing_capacity = edge["attrs"]["computing_capacity"][1]
+					resource.memory = edge["attrs"]["memory"][1]
+					registry = this.computeResourceRegistry
+					break
+				case "radio":
+					assetType = "RadioResource"
+					resource = factory.newResource('top.nextnet.gnb', assetType, edge.id);
+					resource.fronthaul_link_capacity = edge["attrs"]["fronthaul_link_capacity"][1]
+					resource.fronthaul_link_latency = edge["attrs"]["fronthaul_link_latency"][1]
+					resource.mac_scheduler = edge["attrs"]["mac_scheduler"][1]
+					resource.pRB_amount = edge["attrs"]["pRB_amount"][1]
+					registry = this.radioResourceRegistry
+					break
+				case "transport":
+					assetType = "TransportResource"
+					resource = factory.newResource('top.nextnet.gnb', assetType, edge.id);
+					registry = this.computeResourceRegistry
+					resource.bandwidth = edge["attrs"]["bandwidth"][1]
+					resource.latency = edge["attrs"]["latency"][1]
+
+			}
 
 
+			resource.src = edge.node1.toString();
+			resource.dst = edge.node2.toString();
+			resource.price = edge["attrs"]["price"][1]
+			resource.id = edge.id.toString()
+
+			let update_found = false
+			for (let r of rp.resources) {
+				console.log("is " + r.getIdentifier() + " the same as " + resource.id)
+				if (r.getIdentifier() == resource.id) {
+
+					update_found = true
+					await registry.update(resource);
+					break;
+				}
+			}
+			if (!update_found) {
+				try {
+					await registry.add(resource);
+				}
+				catch (err) {
+					console.log("ignoring duplicate resource")
+				}
+
+				rp.resources.push(factory.newRelationship('top.nextnet.gnb', assetType, resource.id));
+
+
+			}
+
+
+
+
+
+
+		}
+
+		await this.rpRegistry.update(rp);
 	}
 
 
 	/** Listen for the sale transaction events
-     	*/
+		  */
 	listen() {
 		this.bizNetworkConnection.on('event', (evt) => {
 			console.log(evt);

@@ -44,40 +44,48 @@ abstract asset SliceRequest identified by SliceRequestId{
 }
 
 asset TransportSliceRequest extends SliceRequest{
-  o Double delay
+  o Double bandwidth
   o Double latency
 }
 
 asset ComputesliceRequest extends SliceRequest{
-  o Double cpu
-  o Double ram
+  o Double computing_capacity
+  o Double memory
 }
 
 asset RadioSliceRequest extends SliceRequest{
-  o String radioType
+  
+  o Double fronthaul_link_capacity
+  o Double fronthaul_link_latency
+  o String mac_scheduler
+  o Double pRB_amount
 }
 
 
 abstract asset Resource identified by id{
+  o String src
+  o String dst
   o String id
   o Double price
 }
 
 asset TransportResource extends Resource{
-  o String src
-  o String dst
-  o Double delay
+  o Double bandwidth
   o Double latency
 }
 
 asset ComputeResource extends Resource{
-  o String cpu
-  o String ram
-  o String location
+  o Double computing_capacity
+  o Double memory
+  
 }
 
 asset RadioResource extends Resource{
-  o String radioType
+  
+  o Double fronthaul_link_capacity
+  o Double fronthaul_link_latency
+  o String mac_scheduler
+  o Double pRB_amount
 }
 
 asset Bid identified by id{
