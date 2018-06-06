@@ -12,10 +12,10 @@
  * limitations under the License.
  */
 
-'use strict';
+"use strict";
 
-const composerSteps = require('composer-cucumber-steps');
-const cucumber = require('cucumber');
+const composerSteps = require("composer-cucumber-steps");
+const cucumber = require("cucumber");
 
 module.exports = function () {
     composerSteps.call(this);
