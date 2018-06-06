@@ -206,7 +206,7 @@ describe('#' + namespace, () => {
         factory = businessNetworkConnection.getBusinessNetwork().getFactory();
     }
 
-    it('Alice can read only hey intentions', async () => {
+    it('Alice can read only her intentions', async () => {
         // Use the identity for Alice.
         await useIdentity(aliceCardName);
         const assetRegistry = await businessNetworkConnection.getAssetRegistry(intentionNS);
@@ -277,9 +277,8 @@ describe('#' + namespace, () => {
 
 
         var newlyFetchedIntention = await assetRegistry.get("Intention3");
-        events.should.have.lengthOf(2);
-        events[0].message.should.equal("emiting intention");
-        events[1].message.should.equal("intention emited");
+        events.should.have.lengthOf(1);
+        events[0].message.should.equal("intention emited");
         newlyFetchedIntention.public.should.equal(true);
 
 

@@ -16,8 +16,17 @@ rule debug{
   participant(t): "top.nextnet.gnb.SliceOwner"
   operation: ALL
   resource(v): "top.nextnet.gnb.Intention"
-  condition: (v.owner.getIdentifier() != t.getIdentifier())
-  action: DENY
+  condition: (v.owner.getIdentifier() == t.getIdentifier())
+  action: ALLOW
+}
+
+
+ rule SliceOwnerCanCreateModelObjects {
+  description: "SliceOwnerOnlyhaveAccessToTheirOwnSlices"
+  participant: "top.nextnet.gnb.SliceOwner"
+  operation: CREATE
+  resource: "top.nextnet.gnb.PublishIntention"
+    action: ALLOW
 }
 
 
