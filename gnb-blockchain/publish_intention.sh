@@ -11,7 +11,7 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
 
 
 
-composer identity issue -c admin@gnb -f so$ID.card -u $ID -a "resource:top.nextnet.gnb.SliceOwner#$ID"
+#composer identity issue -c admin@gnb -f so$ID.card -u $ID -a "resource:top.nextnet.gnb.SliceOwner#$ID"
 
 
-composer card  import -f ./so$ID.card 
+#composer card  import -f ./so$ID.card 

@@ -14,6 +14,10 @@ participant ResourceProvider identified by id{
   --> Resource[] resources optional
 }
 
+participant ResourceBroker identified by id{
+  o String id
+}
+
 asset Intention identified by intentionId{
   o Boolean public default=false
   o String intentionId
@@ -97,14 +101,14 @@ asset Bid identified by id{
 
 event NewIntentionEvent extends Event{
   o String message
+  --> Intention target
 }
 
 transaction PublishIntention {
   --> Intention target
 }
 
-transaction RespondToStuff {
-
+transaction PublishService {
 }
 
 /*

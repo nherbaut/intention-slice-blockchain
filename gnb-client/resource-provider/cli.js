@@ -138,10 +138,7 @@ class SitechainListener {
 		this.bizNetworkConnection.on('event', (evt) => {
 			
 
-			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewIntentionEvent") {
-
-				console.log(evt.getFullyQualifiedType())
-			}
+			
 
 		});
 	}
@@ -152,5 +149,4 @@ class SitechainListener {
 
 
 var lnr = new SitechainListener();
-lnr.init().then(
-	res => { lnr.listen() });
+lnr.init();

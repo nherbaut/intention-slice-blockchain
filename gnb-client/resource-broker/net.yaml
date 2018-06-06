@@ -1,0 +1,320 @@
+edges:
+- attrs:
+    bandwidth: ['=', 14.0, resource]
+    computing_capacity: ['=', 36.0, resource]
+    memory: ['=', 91.0, resource]
+    price: ['=', 417.8379075071761]
+  id: 0/2
+  node1: 0
+  node2: 2
+  type: core
+- attrs:
+    bandwidth: ['=', 73.0, resource]
+    computing_capacity: ['=', 46.0, resource]
+    memory: ['=', 81.0, resource]
+    price: ['=', 548.5879804449445]
+  id: 0/3
+  node1: 0
+  node2: 3
+  type: core
+- attrs:
+    bandwidth: ['=', 3.0, resource]
+    latency: ['=', 28.0]
+    price: ['=', 56.43627773136528]
+  id: 0/4
+  node1: 0
+  node2: 4
+  type: transport
+- attrs:
+    bandwidth: ['=', 54.0, resource]
+    computing_capacity: ['=', 30.0, resource]
+    memory: ['=', 78.0, resource]
+    price: ['=', 239.37031582776126]
+  id: 0/6
+  node1: 0
+  node2: 6
+  type: core
+- attrs:
+    bandwidth: ['=', 31.0, resource]
+    latency: ['=', 15.0]
+    price: ['=', 273.39286329052936]
+  id: 0/7
+  node1: 0
+  node2: 7
+  type: transport
+- attrs:
+    bandwidth: ['=', 60.0, resource]
+    latency: ['=', 41.0]
+    price: ['=', 806.9664435428201]
+  id: 0/8
+  node1: 0
+  node2: 8
+  type: transport
+- attrs:
+    bandwidth: ['=', 62.0, resource]
+    latency: ['=', 30.0]
+    price: ['=', 23.735045896326803]
+  id: 0/14
+  node1: 0
+  node2: 14
+  type: transport
+- attrs:
+    bandwidth: ['=', 2.0, resource]
+    latency: ['=', 25.0]
+    price: ['=', 185.18292102252732]
+  id: 0/17
+  node1: 0
+  node2: 17
+  type: transport
+- attrs:
+    fronthaul_link_capacity: ['=', 137445425891.1772, resource]
+    fronthaul_link_latency: ['=', 3.054743384760992]
+    mac_scheduler: ['=', RR]
+    pRB_amount: ['=', 20.0]
+    price: ['=', 549.4973025570432]
+  id: 1/2
+  node1: 1
+  node2: 2
+  type: radio
+- attrs:
+    bandwidth: ['=', 10.0, resource]
+    computing_capacity: ['=', 32.0, resource]
+    memory: ['=', 23.0, resource]
+    price: ['=', 634.1520156254719]
+  id: 1/12
+  node1: 1
+  node2: 12
+  type: core
+- attrs:
+    bandwidth: ['=', 44.0, resource]
+    computing_capacity: ['=', 59.0, resource]
+    memory: ['=', 58.0, resource]
+    price: ['=', 496.6639063474394]
+  id: 1/18
+  node1: 1
+  node2: 18
+  type: core
+- attrs:
+    bandwidth: ['=', 84.0, resource]
+    computing_capacity: ['=', 32.0, resource]
+    memory: ['=', 84.0, resource]
+    price: ['=', 261.8412011728418]
+  id: 2/3
+  node1: 2
+  node2: 3
+  type: core
+- attrs:
+    fronthaul_link_capacity: ['=', 618437098555.4646, resource]
+    fronthaul_link_latency: ['=', 8.048154819877329]
+    mac_scheduler: ['=', EDF]
+    pRB_amount: ['=', 40.0]
+    price: ['=', 220.86589537724555]
+  id: 2/6
+  node1: 2
+  node2: 6
+  type: radio
+- attrs:
+    fronthaul_link_capacity: ['=', 638226022578.052, resource]
+    fronthaul_link_latency: ['=', 8.083453569352578]
+    mac_scheduler: ['=', EDF]
+    pRB_amount: ['=', 40.0]
+    price: ['=', 937.0063897249771]
+  id: 2/14
+  node1: 2
+  node2: 14
+  type: radio
+- attrs:
+    bandwidth: ['=', 39.0, resource]
+    computing_capacity: ['=', 29.0, resource]
+    memory: ['=', 50.0, resource]
+    price: ['=', 544.2068752355955]
+  id: 2/17
+  node1: 2
+  node2: 17
+  type: core
+- attrs:
+    fronthaul_link_capacity: ['=', 743306653408.753, resource]
+    fronthaul_link_latency: ['=', 9.335713214108457]
+    mac_scheduler: ['=', EDF]
+    pRB_amount: ['=', 20.0]
+    price: ['=', 655.8076936058815]
+  id: 3/4
+  node1: 3
+  node2: 4
+  type: radio
+- attrs:
+    bandwidth: ['=', 22.0, resource]
+    latency: ['=', 47.0]
+    price: ['=', 892.020468936875]
+  id: 3/5
+  node1: 3
+  node2: 5
+  type: transport
+- attrs:
+    bandwidth: ['=', 93.0, resource]
+    latency: ['=', 43.0]
+    price: ['=', 230.09113786395318]
+  id: 3/9
+  node1: 3
+  node2: 9
+  type: transport
+- attrs:
+    bandwidth: ['=', 3.0, resource]
+    latency: ['=', 42.0]
+    price: ['=', 512.754737163485]
+  id: 3/11
+  node1: 3
+  node2: 11
+  type: transport
+- attrs:
+    fronthaul_link_capacity: ['=', 973280752969.5394, resource]
+    fronthaul_link_latency: ['=', 9.261744392691757]
+    mac_scheduler: ['=', EDF]
+    pRB_amount: ['=', 40.0]
+    price: ['=', 654.1602213072954]
+  id: 3/15
+  node1: 3
+  node2: 15
+  type: radio
+- attrs:
+    bandwidth: ['=', 88.0, resource]
+    computing_capacity: ['=', 52.0, resource]
+    memory: ['=', 30.0, resource]
+    price: ['=', 44.87420409256393]
+  id: 3/16
+  node1: 3
+  node2: 16
+  type: core
+- attrs:
+    bandwidth: ['=', 13.0, resource]
+    computing_capacity: ['=', 54.0, resource]
+    memory: ['=', 87.0, resource]
+    price: ['=', 584.5535221125499]
+  id: 3/18
+  node1: 3
+  node2: 18
+  type: core
+- attrs:
+    bandwidth: ['=', 52.0, resource]
+    latency: ['=', 27.0]
+    price: ['=', 140.58974176243254]
+  id: 4/5
+  node1: 4
+  node2: 5
+  type: transport
+- attrs:
+    fronthaul_link_capacity: ['=', 111282762209.20128, resource]
+    fronthaul_link_latency: ['=', 8.92142506536692]
+    mac_scheduler: ['=', PF]
+    pRB_amount: ['=', 20.0]
+    price: ['=', 583.6328743709912]
+  id: 4/9
+  node1: 4
+  node2: 9
+  type: radio
+- attrs:
+    fronthaul_link_capacity: ['=', 329199804650.6098, resource]
+    fronthaul_link_latency: ['=', 7.699282743962581]
+    mac_scheduler: ['=', RR]
+    pRB_amount: ['=', 60.0]
+    price: ['=', 30.363039842586815]
+  id: 4/10
+  node1: 4
+  node2: 10
+  type: radio
+- attrs:
+    bandwidth: ['=', 84.0, resource]
+    latency: ['=', 40.0]
+    price: ['=', 600.6530755784286]
+  id: 5/7
+  node1: 5
+  node2: 7
+  type: transport
+- attrs:
+    fronthaul_link_capacity: ['=', 369989470514.38007, resource]
+    fronthaul_link_latency: ['=', 2.161967192846359]
+    mac_scheduler: ['=', RR]
+    pRB_amount: ['=', 40.0]
+    price: ['=', 636.7048205096862]
+  id: 5/11
+  node1: 5
+  node2: 11
+  type: radio
+- attrs:
+    fronthaul_link_capacity: ['=', 511552472390.55975, resource]
+    fronthaul_link_latency: ['=', 8.317771306117365]
+    mac_scheduler: ['=', PF]
+    pRB_amount: ['=', 40.0]
+    price: ['=', 633.8775858556204]
+  id: 5/16
+  node1: 5
+  node2: 16
+  type: radio
+- attrs:
+    bandwidth: ['=', 83.0, resource]
+    latency: ['=', 37.0]
+    price: ['=', 670.64846100226]
+  id: 6/8
+  node1: 6
+  node2: 8
+  type: transport
+- attrs:
+    bandwidth: ['=', 26.0, resource]
+    latency: ['=', 18.0]
+    price: ['=', 634.9950070793557]
+  id: 6/12
+  node1: 6
+  node2: 12
+  type: transport
+- attrs:
+    bandwidth: ['=', 31.0, resource]
+    computing_capacity: ['=', 44.0, resource]
+    memory: ['=', 24.0, resource]
+    price: ['=', 562.2770240957816]
+  id: 6/13
+  node1: 6
+  node2: 13
+  type: core
+- attrs:
+    bandwidth: ['=', 51.0, resource]
+    latency: ['=', 45.0]
+    price: ['=', 282.8175893494681]
+  id: 7/19
+  node1: 7
+  node2: 19
+  type: transport
+- attrs:
+    fronthaul_link_capacity: ['=', 734987539600.7284, resource]
+    fronthaul_link_latency: ['=', 3.2852550174661266]
+    mac_scheduler: ['=', EDF]
+    pRB_amount: ['=', 0.0]
+    price: ['=', 105.04536309808276]
+  id: 8/13
+  node1: 8
+  node2: 13
+  type: radio
+- attrs:
+    bandwidth: ['=', 98.0, resource]
+    computing_capacity: ['=', 20.0, resource]
+    memory: ['=', 20.0, resource]
+    price: ['=', 526.9613192161125]
+  id: 9/10
+  node1: 9
+  node2: 10
+  type: core
+- attrs:
+    bandwidth: ['=', 51.0, resource]
+    latency: ['=', 28.0]
+    price: ['=', 323.0445933322292]
+  id: 12/15
+  node1: 12
+  node2: 15
+  type: transport
+- attrs:
+    bandwidth: ['=', 75.0, resource]
+    latency: ['=', 32.0]
+    price: ['=', 794.9038765909852]
+  id: 13/19
+  node1: 13
+  node2: 19
+  type: transport
