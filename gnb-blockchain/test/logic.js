@@ -189,6 +189,8 @@ describe('#' + namespace, () => {
 
 
 
+
+
     });
 
     /**
@@ -253,7 +255,7 @@ describe('#' + namespace, () => {
 
     });
 
-    it("Publishing the intention changes its public flag", async () => {
+    it("Publishing the intention changes its public flag and emit an event", async () => {
         await useIdentity(aliceCardName);
 
         const assetRegistry = await businessNetworkConnection.getAssetRegistry(intentionNS);
@@ -262,7 +264,6 @@ describe('#' + namespace, () => {
 
         var participalRegistry = await businessNetworkConnection.getParticipantRegistry(sliceOwnerNS);
 
-        // Create the vehicle.
         var intention = factory.newResource(namespace, 'Intention', 'Intention3');
         intention.intentionData = "I want 1000 users in Bordeaux from Paris"
         intention.owner = factory.newRelationship(namespace, sliceOwnerType, 'alice@email.com');
@@ -285,10 +286,47 @@ describe('#' + namespace, () => {
 
 
 
-    });
+    })
+
+    it("Publishing the intention changes its public flag", async () => {
+        await useIdentity(aliceCardName);
 
 
+        const serviceRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
 
+        var factory = businessNetworkConnection.getBusinessNetwork().getFactory();
+
+        var service = factory.newResource(namespace, 'Service', 'Service1');
+
+        var sr1 = factory.newResource(namespace, 'TransportSlice', 'Service1');
+        sr1.bandwidth=10
+        sr1.latency=20
+        sr1.src="A"
+        sr1.dst="B"
+        sr1.factory.newRelationship(namespace, sliceOwnerType, 'alice@email.com');
+
+        
+
+
+        service.intentionData = "I want 1000 users in Bordeaux from Paris"
+        intention.owner = factory.newRelationship(namespace, sliceOwnerType, 'alice@email.com');
+        intention.public = false
+        await assetRegistry.add(intention)
+
+        let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishIntention');
+        transaction.target = factory.newRelationship(namespace, "Intention", 'Intention3');
+
+
+        await businessNetworkConnection.submitTransaction(transaction);
+
+
+        var newlyFetchedIntention = await assetRegistry.get("Intention3");
+        events.should.have.lengthOf(1);
+        events[0].message.should.equal("intention emited");
+        newlyFetchedIntention.public.should.equal(true);
+
+
+    })
 
 
 });

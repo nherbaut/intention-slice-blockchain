@@ -6,12 +6,11 @@ namespace top.nextnet.gnb
 participant SliceOwner identified by sliceOwnerId{
   o String sliceOwnerId
   o String name
-  --> Intention itention optional
 }
 
 participant ResourceProvider identified by id{
   o String id
-  --> Resource[] resources optional
+  o Slice[] slices optional
 }
 
 participant ResourceBroker identified by id{
@@ -28,37 +27,37 @@ asset Intention identified by intentionId{
 
 asset Service identified by serviceId{
   o String serviceId
+  o Boolean public default=false
   --> Intention itention
-  --> ServiceFragment[] fragments optional
+  o Slice[] slices optional
+  
 }
 
 asset ServiceFragment identified by id{
+  o Boolean public default=false
   o String id
-  --> SliceRequest[] slices
+  o Slice[] slices
 }
 
-asset ContentDeliveryService extends Service { 
-  o String origin
-  o String clientGroup
+abstract concept Slice {
 }
 
-abstract asset SliceRequest identified by SliceRequestId{
-  o String SliceRequestId
-  --> Service service
-}
-
-asset TransportSliceRequest extends SliceRequest{
+concept TransportSlice extends Slice{
   o Double bandwidth
   o Double latency
+  o String src
+  o String dst
+
 }
 
-asset ComputesliceRequest extends SliceRequest{
+concept ComputeSlice extends Slice{
+  o String location
   o Double computing_capacity
   o Double memory
 }
 
-asset RadioSliceRequest extends SliceRequest{
-  
+concept RadioSlice extends Slice{
+  o String location
   o Double fronthaul_link_capacity
   o Double fronthaul_link_latency
   o String mac_scheduler
@@ -66,35 +65,23 @@ asset RadioSliceRequest extends SliceRequest{
 }
 
 
-abstract asset Resource identified by id{
-  o String src
-  o String dst
-  o String id
+concept TransportSliceProposal extends TransportSlice{
   o Double price
 }
 
-asset TransportResource extends Resource{
-  o Double bandwidth
-  o Double latency
-}
+concept ComputeSliceProposal extends ComputeSlice{
+  o Double price
+  }
 
-asset ComputeResource extends Resource{
-  o Double computing_capacity
-  o Double memory
-  
-}
-
-asset RadioResource extends Resource{
-  
-  o Double fronthaul_link_capacity
-  o Double fronthaul_link_latency
-  o String mac_scheduler
-  o Double pRB_amount
+concept RadioSliceProposal extends RadioSlice{
+  o Double price
 }
 
 asset Bid identified by id{
   o String id
+  o Double price
   --> ServiceFragment fragment
+  --> ResourceProvider owner
 } 
 
 
@@ -108,8 +95,26 @@ transaction PublishIntention {
   --> Intention target
 }
 
-transaction PublishService {
+event NewServiceEvent extends Event{
+  o String message
+  --> Service target
 }
+
+transaction PublishService {
+  --> Service target
+}
+
+event NewServiceFragmentEvent extends Event{
+  o String message
+  --> ServiceFragment target
+}
+
+transaction PublishServiceFragment {
+  --> ServiceFragment target
+}
+
+
+
 
 /*
  * Licensed under the Apache License, Version 2.0 (the "License");
