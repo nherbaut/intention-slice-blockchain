@@ -17,23 +17,18 @@
 async function intentionPublicationProcessor(intention) {
 
     var factory = getFactory();
-    
+
     var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewIntentionEvent');
     basicEvent.message = "emiting intention"
     emit(basicEvent);
     console.log(basicEvent)
 
     let intentionRegistry = await getAssetRegistry("top.nextnet.gnb.Intention");
-    
+
     intention.target.public = true
     await intentionRegistry.update(intention.target)
     basicEvent.message = "intention emited"
     emit(basicEvent)
     console.log(basicEvent)
-
-
-
-
-
 
 }

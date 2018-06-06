@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 'use strict';
 
 const BusinessNetworkConnection = require('composer-client').BusinessNetworkConnection;
@@ -31,7 +33,7 @@ class SitechainListener {
 		this.computeResourceRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.ComputeResource");
 		this.radioResourceRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.RadioResource");
 
-		setInterval(this.updatedb.bind(this), 20000);
+		setInterval(this.updatedb.bind(this), 10000);
 
 	}
 
@@ -92,14 +94,14 @@ class SitechainListener {
 			for (let r of rp.resources) {
 				//console.log("is " + r.getIdentifier() + " the same as " + resource.id)
 				if (r.getIdentifier() == resource.id) {
-					var rr=await registry.get(r.getIdentifier())
+					var rr = await registry.get(r.getIdentifier())
 					update_found = true;
 					if (!_.isEqual(resource, rr)) {
 						await registry.update(resource);
-						console.log("updated "+ resource.id)
+						//console.log("updated "+ resource.id)
 					}
-					else{
-						console.log("update skipped "+ resource.id)
+					else {
+						//console.log("update skipped "+ resource.id)
 					}
 
 					break;
@@ -110,7 +112,7 @@ class SitechainListener {
 					await registry.add(resource);
 				}
 				catch (err) {
-					console.log("ignoring duplicate resource")
+					//console.log("ignoring duplicate resource")
 				}
 
 				rp.resources.push(factory.newRelationship('top.nextnet.gnb', assetType, resource.id));
@@ -132,12 +134,15 @@ class SitechainListener {
 	/** Listen for the sale transaction events
 		  */
 	listen() {
+		console.log("listening to events")
 		this.bizNetworkConnection.on('event', (evt) => {
+			
 
-			console.log(evt);
-			let options = {
-				properties: { key: 'value' }
-			};
+			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewIntentionEvent") {
+
+				console.log(evt.getFullyQualifiedType())
+			}
+
 		});
 	}
 
