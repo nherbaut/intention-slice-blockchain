@@ -28,7 +28,7 @@ asset Intention identified by intentionId{
 asset Service identified by serviceId{
   o String serviceId
   o Boolean public default=false
-  --> Intention itention
+  --> Intention intention
   o Slice[] slices optional
   
 }
@@ -37,6 +37,7 @@ asset ServiceFragment identified by id{
   o Boolean public default=false
   o String id
   o Slice[] slices
+  --> Service service
 }
 
 abstract concept Slice {

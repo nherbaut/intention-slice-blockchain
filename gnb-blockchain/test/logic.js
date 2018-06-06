@@ -187,6 +187,18 @@ describe('#' + namespace, () => {
 
         }
 
+        // Resource Broker instantication
+
+        {
+            const resourceBrokerRegistry = await businessNetworkConnection.getParticipantRegistry("top.nextnet.gnb.ResourceBroker")
+
+            const broker = factory.newResource(namespace, "ResourceBroker", "MyBroker");
+            await resourceBrokerRegistry.add(broker)
+            let identityBroker = await businessNetworkConnection.issueIdentity("top.nextnet.gnb.ResourceBroker" + '#MyBroker', "MyBroker");
+            await importCardForIdentity("MyBroker", identityBroker);
+
+        }
+
 
 
 
@@ -279,17 +291,15 @@ describe('#' + namespace, () => {
 
         var newlyFetchedIntention = await assetRegistry.get("Intention3");
         events.should.have.lengthOf(1);
-        events[0].message.should.equal("intention emited");
-        newlyFetchedIntention.public.should.equal(true);
-
+       
 
 
 
 
     })
 
-    it("Publishing the intention changes its public flag", async () => {
-        await useIdentity(aliceCardName);
+    it("Service Fragments Generation", async () => {
+        await useIdentity("MyBroker");
 
 
         const serviceRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
@@ -298,32 +308,31 @@ describe('#' + namespace, () => {
 
         var service = factory.newResource(namespace, 'Service', 'Service1');
 
-        var sr1 = factory.newResource(namespace, 'TransportSlice', 'Service1');
-        sr1.bandwidth=10
-        sr1.latency=20
-        sr1.src="A"
-        sr1.dst="B"
-        sr1.factory.newRelationship(namespace, sliceOwnerType, 'alice@email.com');
+        service.slices=[]
+        for (var i = 0; i < 3; i++) {
+            var sr1 = factory.newConcept(namespace, 'TransportSlice');
+            sr1.bandwidth = 10
+            sr1.latency = 20
+            sr1.src = "A" + i
+            sr1.dst = "B" + i
+            service.slices.push(sr1);
+        }
 
-        
+        service.intention=factory.newRelationship(namespace,"Intention","Intention3")
 
-
-        service.intentionData = "I want 1000 users in Bordeaux from Paris"
-        intention.owner = factory.newRelationship(namespace, sliceOwnerType, 'alice@email.com');
-        intention.public = false
-        await assetRegistry.add(intention)
-
-        let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishIntention');
-        transaction.target = factory.newRelationship(namespace, "Intention", 'Intention3');
-
+        await serviceRegistry.add(service);
+        var service2=await serviceRegistry.get("Service1")
+        let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
+        transaction.target = factory.newRelationship(namespace, "Service", 'Service1');
 
         await businessNetworkConnection.submitTransaction(transaction);
 
 
-        var newlyFetchedIntention = await assetRegistry.get("Intention3");
-        events.should.have.lengthOf(1);
-        events[0].message.should.equal("intention emited");
-        newlyFetchedIntention.public.should.equal(true);
+        const serviceFragmentRegistry = await businessNetworkConnection.getAssetRegistry('top.nextnet.gnb.ServiceFragment');
+
+        var fragments = await serviceFragmentRegistry.getAll();
+        fragments.should.have.lengthOf(7);
+        events[0].getType().should.equal("NewServiceFragmentEvent");
 
 
     })

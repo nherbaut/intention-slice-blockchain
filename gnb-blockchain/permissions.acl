@@ -31,13 +31,6 @@ rule debug{
 
 
 
- rule ResourceProviderOnyHaveAccessToTheirResource {
-  description: "Resource provider have only access to their network"
-  participant: "top.nextnet.gnb.ResourceProvider"
-  operation: ALL
-  resource: "top.nextnet.gnb.Resource"
-  action: ALLOW
-}
 
 
 
@@ -74,3 +67,44 @@ rule NetworkAdminSystem {
     action: ALLOW
 }
 
+
+/***********************************/
+
+
+ rule BrokerReadIntention{
+  description: "Resource broker can read every public intention"
+  participant: "top.nextnet.gnb.ResourceBroker"
+  operation: ALL  
+  resource: "top.nextnet.gnb.Intention"
+  condition: (True)
+  action: ALLOW
+}
+
+
+
+ rule BrokerCreateService {
+  description: "Resource broker create Services"
+  participant: "top.nextnet.gnb.ResourceBroker"
+  operation: ALL  
+  resource: "top.nextnet.gnb.Service"
+  action: ALLOW
+}
+
+
+ rule BrokerPublishService {
+  description: "Resource broker create Services"
+  participant: "top.nextnet.gnb.ResourceBroker"
+  operation: ALL  
+  resource: "top.nextnet.gnb.PublishService"
+  action: ALLOW
+}
+
+
+
+ rule BrokenCreateServiceFragment {
+  description: "Resource broker create Services"
+  participant: "top.nextnet.gnb.ResourceBroker"
+  operation: ALL  
+  resource: "top.nextnet.gnb.ServiceFragment"
+  action: ALLOW
+}

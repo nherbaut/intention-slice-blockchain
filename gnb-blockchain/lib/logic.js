@@ -17,12 +17,13 @@ async function intentionPublicationProcessor(intention) {
     basicEvent.message = "intention emited"
     basicEvent.target = intention.target
     emit(basicEvent)
-    console.log(basicEvent)
+
 
 }
 
 //https://stackoverflow.com/questions/42773836/how-to-find-all-subsets-of-a-set-in-javascript
 function* subsets(array, offset = 0) {
+
     while (offset < array.length) {
         let first = array[offset++];
         for (let subset of subsets(array, offset)) {
@@ -30,7 +31,9 @@ function* subsets(array, offset = 0) {
             yield subset;
         }
     }
+
     yield [];
+
 }
 
 /**
@@ -42,25 +45,39 @@ async function servicePublicationProcessor(service) {
 
     var factory = getFactory();
 
-
     let serviceFragmentRegistry = await getAssetRegistry("top.nextnet.gnb.ServiceFragment");
-    fagments = []
-    for (let entry of subsets(service.slices).entries()) {
-        [id, slice_reqeusts] = entry
-        fagment = factory.newResource("top.nextnet.gnb", "SliceFragment", service.getIdentifier() + "_" + id)
-        fragment.slices = []
-        for (let slice in slice_reqeusts) {
-            frament.slices.push((factory.newRelationship('top.nextnet.gnb', slice.getType(), slice.getIdentifier()));
+    fragments = []
+
+
+    for (let entry of [...subsets(service.target.slices)].entries()) {
+
+
+
+        [id, slice_requests] = entry
+
+        if (slice_requests.length == 0) {
+            continue;
         }
 
-        fagments.push(framgment);
+        var fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", service.getIdentifier() + "_" + id)
+        fragment.slices = []
+        for (let slice of slice_requests) {
+            fragment.slices.push(slice);
+
+        }
+        fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", service.getIdentifier());
+
+        fragments.push(fragment);
     }
 
     await serviceFragmentRegistry.addAll(fragments);
+    let frags = await serviceFragmentRegistry.getAll()
+
     for (let fragment of fragments) {
 
         var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentEvent');
         basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier);
+        basicEvent.message = "new Service Fragment"
         emit(basicEvent);
 
     }
