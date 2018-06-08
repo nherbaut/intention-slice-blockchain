@@ -3,13 +3,11 @@
     "composer": "^0.19.5"
   },
   "name": "gnb",
-  "version": "0.0.78",
+  "version": "0.0.79",
   "description": "gnb",
   "scripts": {
     "prepublish": "mkdirp ./dist && composer archive create --sourceType dir --sourceName . -a ./dist/gnb.bna",
-    "pretest": "npm run lint",
-    "lint": "eslint .",
-    "test": "nyc mocha -t 0 test/*.js && cucumber-js"
+    "test": "mocha -t 0 test/*.js "
   },
   "keywords": [
     "composer",
