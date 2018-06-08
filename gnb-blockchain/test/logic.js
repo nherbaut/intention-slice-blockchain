@@ -152,6 +152,7 @@ describe('#' + namespace, () => {
             const asset2 = factory.newResource(namespace, intentionType, '2');
             asset2.owner = factory.newRelationship(namespace, sliceOwnerType, 'bob@email.com');
             asset2.intentionData = 'I want a content delivery Service too';
+            asset2.public = true
 
             await intentionRegistry.addAll([asset1, asset2]);
 
@@ -291,15 +292,27 @@ describe('#' + namespace, () => {
 
         var newlyFetchedIntention = await assetRegistry.get("Intention3");
         events.should.have.lengthOf(1);
-       
+        newlyFetchedIntention.public.should.equal(true);
+
 
 
 
 
     })
 
+    it("Service Brokers can read public intentions ", async () => {
+        await useIdentity("MyBroker");
+
+        var intentionRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Intention");
+        var intentions = await intentionRegistry.getAll()
+
+        intentions.should.have.lengthOf(1);
+    })
+
     it("Service Fragments Generation", async () => {
         await useIdentity("MyBroker");
+
+
 
 
         const serviceRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
@@ -308,7 +321,7 @@ describe('#' + namespace, () => {
 
         var service = factory.newResource(namespace, 'Service', 'Service1');
 
-        service.slices=[]
+        service.slices = []
         for (var i = 0; i < 3; i++) {
             var sr1 = factory.newConcept(namespace, 'TransportSlice');
             sr1.bandwidth = 10
@@ -318,10 +331,10 @@ describe('#' + namespace, () => {
             service.slices.push(sr1);
         }
 
-        service.intention=factory.newRelationship(namespace,"Intention","Intention3")
+        service.intention = factory.newRelationship(namespace, "Intention", "Intention3")
 
         await serviceRegistry.add(service);
-        var service2=await serviceRegistry.get("Service1")
+        var service2 = await serviceRegistry.get("Service1")
         let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
         transaction.target = factory.newRelationship(namespace, "Service", 'Service1');
 

@@ -2,6 +2,19 @@
  * Access control rules for tutorial-network
  */
 
+
+
+
+
+ rule BrokerReadIntention{
+  description: "Resource broker can read every public intention"
+  participant: "top.nextnet.gnb.ResourceBroker"
+  operation: ALL  
+  resource(v): "top.nextnet.gnb.Intention"
+  condition: (v.public == true)
+  action: ALLOW
+}
+
 rule debug{
     description: "SliceOwnerOnlyhaveAccessToTheirOwnSlices"
   participant(p): "top.nextnet.gnb.ResourceProvider"
@@ -10,6 +23,8 @@ rule debug{
   condition: (p.getIdentifier()==r.getIdentifier())
   action: ALLOW
 }
+
+
 
  rule SliceOwnerOnlyhaveAccessToTheirOwnIntention {
   description: "SliceOwnerOnlyhaveAccessToTheirOwnSlices"
@@ -71,14 +86,7 @@ rule NetworkAdminSystem {
 /***********************************/
 
 
- rule BrokerReadIntention{
-  description: "Resource broker can read every public intention"
-  participant: "top.nextnet.gnb.ResourceBroker"
-  operation: ALL  
-  resource: "top.nextnet.gnb.Intention"
-  condition: (True)
-  action: ALLOW
-}
+
 
 
 

@@ -28,10 +28,11 @@ class SitechainListener {
 
 	async init() {
 		this.businessNetworkDefinition = await this.bizNetworkConnection.connect(cardname);
+		this.intentionRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.Intention");
 	}
 
 
-	
+
 
 
 	/** Listen for the sale transaction events
@@ -39,11 +40,16 @@ class SitechainListener {
 	listen() {
 		console.log("listening to events")
 		this.bizNetworkConnection.on('event', (evt) => {
-			
 
 			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewIntentionEvent") {
 
-				console.log(evt.target);
+
+				this.intentionRegistry.getAll().then( all => { console.log(all)});
+
+				this.intentionRegistry.get(evt.target.getIdentifier()).then(
+					intention => { console.log(intention.getIdentifier()); }
+				)
+
 			}
 
 		});
