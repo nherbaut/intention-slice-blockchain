@@ -4,11 +4,13 @@
 
 const BusinessNetworkConnection = require('composer-client').BusinessNetworkConnection;
 const winston = require('winston');
-var yaml = require('js-yaml')
+var yaml = require('js-yaml');
+const util = require('util');
 var fs = require('fs');
 var _ = require('underscore');
 var rn = require('random-number');
 var chalk = require('chalk');
+var promiseRetry = require('promise-retry');
 const uuid = require('uuid/v4');
 let config = require('config').get('event-app');
 const LOG = winston.loggers.get('application');
@@ -31,6 +33,8 @@ class SitechainListener {
 		this.businessNetworkDefinition = await this.bizNetworkConnection.connect(cardname);
 		this.intentionRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.Intention");
 		this.serviceRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
+		this.serviceFragmentRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.ServiceFragment");
+		this.publishServiceTransactionRegistry = await this.bizNetworkConnection.getTransactionRegistry("top.nextnet.gnb.PublishService");
 		this.factory = await this.bizNetworkConnection.getBusinessNetwork().getFactory();
 	}
 
@@ -41,6 +45,7 @@ class SitechainListener {
 		slice.dst = "" + Math.floor(Math.random() * 100);
 		slice.bandwidth = Math.floor(Math.random() * 100);
 		slice.latency = Math.floor(Math.random() * 20) + 5;
+		slice.id = uuid();
 
 		return slice;
 
@@ -49,8 +54,10 @@ class SitechainListener {
 		var intentionData = intention.intentionData
 
 		var services = []
-		for (let i of [0, 1, 2]) {
-			var service = this.factory.newResource("top.nextnet.gnb", "Service", uuid());
+		for (let i of [0,1,2]) {
+			var id = uuid().replace("-", "");
+			var service = this.factory.newResource("top.nextnet.gnb", "Service", id);
+			service.serviceId = id
 			service.slices = []
 			for (let j of [0, 1, 2, 3]) {
 				service.slices.push(this.get_random_slice());
@@ -68,24 +75,40 @@ class SitechainListener {
 
 	/** Listen for the sale transaction events
 		  */
-	listen() {
+	async listen() {
 		console.log("listening to events")
-		this.bizNetworkConnection.on('event', (evt) => {
+		this.bizNetworkConnection.on('event', async (evt) => {
 
 			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewIntentionEvent") {
 
 
 
 
-				this.intentionRegistry.get(evt.target.getIdentifier()).then(
-					intention => {
+				var intention = await this.intentionRegistry.get(evt.target.getIdentifier());
 
-						var services = this.generate_services(intention)
-						this.serviceRegistry.addAll(services).then(
-							console.log(services.length + " services added"));
-					}
 
-				)
+				var services = this.generate_services(intention)
+				for (let service of services) {
+					var service_id = service.getIdentifier();
+					service = await this.serviceRegistry.add(service)
+
+
+					var newServiceEvent = this.factory.newEvent("top.nextnet.gnb", "NewServiceEvent");
+					newServiceEvent.target = this.factory.newRelationship("top.nextnet.gnb", "Service", service_id);
+					this.bizNetworkConnection.emit(newServiceEvent);
+					var publishServiceTransaction = this.factory.newTransaction("top.nextnet.gnb", "PublishService");
+					publishServiceTransaction.service = this.factory.newRelationship("top.nextnet.gnb", "Service", service_id);
+					await this.bizNetworkConnection.submitTransaction(publishServiceTransaction);
+					console.log("a Service has been published " + publishServiceTransaction.getIdentifier());
+				};
+
+
+
+
+
+			}
+			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentEvent") {
+				console.log(util.format("a new fragment for service %s published ", evt.target.getIdentifier()));
 			}
 		})
 

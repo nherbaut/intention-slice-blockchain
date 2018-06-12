@@ -1,3 +1,4 @@
+
 /**
  * bla
  * @param {top.nextnet.gnb.PublishIntention} intention
@@ -41,7 +42,9 @@ function* subsets(array, offset = 0) {
  * @param {top.nextnet.gnb.PublishService} service
  * @transaction
  */
-async function servicePublicationProcessor(service) {
+async function servicePublicationProcessor(payload) {
+
+
 
     var factory = getFactory();
 
@@ -49,7 +52,7 @@ async function servicePublicationProcessor(service) {
     fragments = []
 
 
-    for (let entry of [...subsets(service.target.slices)].entries()) {
+    for (let entry of [...subsets(payload.service.slices)].entries()) {
 
 
 
@@ -58,14 +61,13 @@ async function servicePublicationProcessor(service) {
         if (slice_requests.length == 0) {
             continue;
         }
-
-        var fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", service.getIdentifier() + "_" + id)
+        var fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", payload.service.getIdentifier() + "_" + id)
         fragment.slices = []
         for (let slice of slice_requests) {
             fragment.slices.push(slice);
 
         }
-        fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", service.getIdentifier());
+        fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", payload.service.getIdentifier());
 
         fragments.push(fragment);
     }
@@ -76,7 +78,7 @@ async function servicePublicationProcessor(service) {
     for (let fragment of fragments) {
 
         var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentEvent');
-        basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier);
+        basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
         basicEvent.message = "new Service Fragment"
         emit(basicEvent);
 

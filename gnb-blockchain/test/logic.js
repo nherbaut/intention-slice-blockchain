@@ -21,7 +21,7 @@ const AdminConnection = require('composer-admin').AdminConnection;
 const BusinessNetworkConnection = require('composer-client').BusinessNetworkConnection;
 const { BusinessNetworkDefinition, CertificateUtil, IdCard } = require('composer-common');
 const path = require('path');
-
+const uuid = require('uuid/v4');
 const chai = require('chai');
 chai.should();
 chai.use(require('chai-as-promised'));
@@ -134,11 +134,11 @@ describe('#' + namespace, () => {
             const sliceOwnerRegistry = await businessNetworkConnection.getParticipantRegistry(sliceOwnerNS);
             // Create the participants.
             const alice = factory.newResource(namespace, sliceOwnerType, 'alice@email.com');
-            alice.name = 'Alice';
+           
 
 
             const bob = factory.newResource(namespace, sliceOwnerType, 'bob@email.com');
-            bob.name = 'Bob';
+           
 
 
             sliceOwnerRegistry.addAll([alice, bob]);
@@ -320,7 +320,7 @@ describe('#' + namespace, () => {
         var factory = businessNetworkConnection.getBusinessNetwork().getFactory();
 
         var service = factory.newResource(namespace, 'Service', 'Service1');
-
+        
         service.slices = []
         for (var i = 0; i < 3; i++) {
             var sr1 = factory.newConcept(namespace, 'TransportSlice');
@@ -328,6 +328,7 @@ describe('#' + namespace, () => {
             sr1.latency = 20
             sr1.src = "A" + i
             sr1.dst = "B" + i
+            sr1.id=uuid()
             service.slices.push(sr1);
         }
 
@@ -336,7 +337,7 @@ describe('#' + namespace, () => {
         await serviceRegistry.add(service);
         var service2 = await serviceRegistry.get("Service1")
         let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
-        transaction.target = factory.newRelationship(namespace, "Service", 'Service1');
+        transaction.service = factory.newRelationship(namespace, "Service", 'Service1');
 
         await businessNetworkConnection.submitTransaction(transaction);
 

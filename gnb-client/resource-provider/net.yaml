@@ -3,7 +3,7 @@ edges:
     bandwidth: ['=', 14.0, resource]
     computing_capacity: ['=', 36.0, resource]
     memory: ['=', 91.0, resource]
-    price: ['=', 417.8379075071761]
+    price: ['=', 1231]
   id: 0/2
   node1: 0
   node2: 2

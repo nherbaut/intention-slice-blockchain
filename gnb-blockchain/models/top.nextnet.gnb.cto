@@ -3,9 +3,8 @@
  */
 namespace top.nextnet.gnb
 
-participant SliceOwner identified by sliceOwnerId{
-  o String sliceOwnerId
-  o String name
+participant SliceOwner identified by id{
+  o String id
 }
 
 participant ResourceProvider identified by id{
@@ -34,13 +33,13 @@ asset Service identified by serviceId{
 }
 
 asset ServiceFragment identified by id{
-  o Boolean public default=false
   o String id
   o Slice[] slices
   --> Service service
 }
 
 abstract concept Slice {
+  o String id
 }
 
 concept TransportSlice extends Slice{
@@ -102,7 +101,7 @@ event NewServiceEvent extends Event{
 }
 
 transaction PublishService {
-  --> Service target
+  --> Service service
 }
 
 event NewServiceFragmentEvent extends Event{
