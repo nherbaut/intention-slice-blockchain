@@ -329,13 +329,13 @@ describe('#' + namespace, () => {
         fragments.should.have.lengthOf(14);
 
 
-        await useIdentity("fooCorp");
+
         var bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
 
-        transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
+
         {
 
-
+            transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
             var bid = factory.newResource("top.nextnet.gnb", "Bid", uuid());
             bid.price = 123;
             bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
@@ -346,44 +346,83 @@ describe('#' + namespace, () => {
         }
 
         {
+            await useIdentity("MyBroker");
+            transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateServiceFragment');
+            transaction.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            await businessNetworkConnection.submitTransaction(transaction);
             var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
             var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
             resultingBestBid.price.should.equal(123);
+            resultingFragment.bestPrice.should.equal(123);
+            resultingFragment.bestRP.getIdentifier().should.equal("fooCorp");
         }
 
         {
-            var bid = factory.newResource("top.nextnet.gnb", "Bid", uuid());
-            bid.price = 124;
+            await useIdentity("fooCorp");
+            transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "Bid122");
+            bid.price = 122;
             bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
             bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
-
             transaction.target = bid;
             await businessNetworkConnection.submitTransaction(transaction);
         }
 
         {
-            var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
-            var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
-            resultingBestBid.price.should.equal(123);
+            await useIdentity("fooCorp");
+            transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "Bid121");
+            bid.price = 121;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            transaction.target = bid;
+            await businessNetworkConnection.submitTransaction(transaction);
         }
 
         {
-            var bid = factory.newResource("top.nextnet.gnb", "Bid", uuid());
+            await useIdentity("MyBroker");
+            transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateServiceFragment');
+            transaction.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            await businessNetworkConnection.submitTransaction(transaction);
+            var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
+            var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
+            resultingBestBid.price.should.equal(121);
+            resultingFragment.bestPrice.should.equal(121);
+            resultingFragment.bestRP.getIdentifier().should.equal("fooCorp");
+
+            var obsobid = await bidRegistry.get("Bid122");
+            obsobid.obsolete.should.equal(true);
+
+        }
+
+        {
+            await useIdentity("barCorp");
+            transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "Bid120");
             bid.price = 120;
             bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
-            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
-
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "barCorp");
             transaction.target = bid;
             await businessNetworkConnection.submitTransaction(transaction);
         }
 
         {
+            await useIdentity("MyBroker");
+            transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateServiceFragment');
+            transaction.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            await businessNetworkConnection.submitTransaction(transaction);
             var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
             var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
             resultingBestBid.price.should.equal(120);
+            resultingFragment.bestPrice.should.equal(120);
+            resultingFragment.bestRP.getIdentifier().should.equal("barCorp");
+
+            var obsobid = await bidRegistry.get("Bid120");
+            obsobid.obsolete.should.equal(false);
+
+            var obsobid = await bidRegistry.get("Bid121");
+            obsobid.obsolete.should.equal(true);
         }
-
-
 
 
 

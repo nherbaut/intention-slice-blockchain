@@ -41,6 +41,21 @@ rule RPCREATEBIDS{
   action: ALLOW
 }
 
+rule RBCanArbitrateSF{
+   description: "Resource broker can arbitrate services fragments"
+  participant: "top.nextnet.gnb.ResourceBroker"
+  operation: ALL
+  resource: "top.nextnet.gnb.ArbitrateServiceFragment"
+  action: ALLOW
+}
+
+rule RBAccessBid{
+   description: "Resource broker can arbitrate services fragments"
+  participant: "top.nextnet.gnb.ResourceBroker"
+  operation: ALL
+  resource: "top.nextnet.gnb.Bid"
+  action: ALLOW
+}
 
 rule RPUpdateFragments{
    description: "Resource providers can access services fragments"

@@ -35,7 +35,9 @@ asset Service identified by serviceId{
 asset ServiceFragment identified by id{
   o String id
   o Slice[] slices
+  o Double bestPrice optional
   --> Service service
+  --> ResourceProvider bestRP optional
   --> Bid bestBid optional
 }
 
@@ -81,6 +83,7 @@ concept RadioSliceProposal extends RadioSlice{
 asset Bid identified by id{
   o String id
   o Double price
+  o Boolean obsolete default=false
   --> ServiceFragment fragment
   --> ResourceProvider owner
 } 
@@ -88,10 +91,15 @@ asset Bid identified by id{
 event PlaceBidEvent extends Event{
   o String message
   --> Bid target
+  --> ServiceFragment fragment
 }
 
 transaction PlaceBid {
   o Bid target
+}
+
+transaction ArbitrateServiceFragment{
+  --> ServiceFragment fragment
 }
 
 

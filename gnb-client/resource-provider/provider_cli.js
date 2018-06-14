@@ -36,7 +36,9 @@ class SitechainListener {
 		this.resourceProvider = (await this.rpRegistry.getAll())[0]
 		this.bidRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
 		this.factory = await this.bizNetworkConnection.getBusinessNetwork().getFactory();
+		await this.updatedb;
 		setInterval(this.updatedb.bind(this), 10000);
+		
 
 	}
 
@@ -223,19 +225,38 @@ class SitechainListener {
 			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentEvent") {
 
 				var serviceFragment = await this.serviceFragmentRegistry.get(evt.target.getIdentifier());
-				var best_price = await this.getBidForFragment(serviceFragment);
-				if (best_price > 0) {
-					var bid = this.factory.newResource("top.nextnet.gnb", "Bid", uuid());
-					bid.price = best_price
-					bid.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", serviceFragment.getIdentifier());
-					bid.owner = this.factory.newRelationship("top.nextnet.gnb", "ResourceProvider", resourceProviderName);
-
-					await this.bidRegistry.add(bid);
-					var placeBidTransaction = this.factory.newTransaction("top.nextnet.gnb", "PlaceBid");
-					placeBidTransaction.target = bid;
-
-					await this.bizNetworkConnection.submitTransaction(placeBidTransaction);
+				var bestBidderId = undefined;
+				if (serviceFragment.bestBid != undefined) {
+					var bestBidder = await this.bidRegistry.get(serviceFragment.bestBid.getIdentifier());
+					bestBidderId = bestBidder.owner.getIdentifier();
 				}
+				if (serviceFragment.bestBid == undefined || bestBidderId != resourceProviderName) {//no self concurrence!
+					var best_price = await this.getBidForFragment(serviceFragment);
+					console.log("trying to compete with " + bestBidderId + " / " + best_price + " for fragment " + serviceFragment.getIdentifier());
+					if (best_price > 0) {
+						var bid = this.factory.newResource("top.nextnet.gnb", "Bid", uuid());
+						bid.price = best_price
+						bid.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", serviceFragment.getIdentifier());
+						bid.owner = this.factory.newRelationship("top.nextnet.gnb", "ResourceProvider", resourceProviderName);
+
+
+						var placeBidTransaction = this.factory.newTransaction("top.nextnet.gnb", "PlaceBid");
+						placeBidTransaction.target = bid;
+
+						while (true) {
+
+							try {
+								await this.bizNetworkConnection.submitTransaction(placeBidTransaction);
+							}
+							catch (err) {
+
+								continue;
+							}
+							break;
+						}
+					}
+				}
+
 
 
 			}

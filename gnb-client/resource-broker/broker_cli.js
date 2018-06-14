@@ -36,6 +36,8 @@ class SitechainListener {
 		this.serviceFragmentRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.ServiceFragment");
 		this.publishServiceTransactionRegistry = await this.bizNetworkConnection.getTransactionRegistry("top.nextnet.gnb.PublishService");
 		this.factory = await this.bizNetworkConnection.getBusinessNetwork().getFactory();
+		setInterval(this.monitorServiceFragments.bind(this), 10000);
+		this.updatedFragments = {}
 	}
 
 
@@ -54,7 +56,7 @@ class SitechainListener {
 		var intentionData = intention.intentionData
 
 		var services = []
-		for (let i of [0,1,2]) {
+		for (let i of [0, 1, 2]) {
 			var id = uuid().replace("-", "");
 			var service = this.factory.newResource("top.nextnet.gnb", "Service", id);
 			service.serviceId = id
@@ -73,6 +75,21 @@ class SitechainListener {
 	}
 
 
+	async monitorServiceFragments() {
+
+
+		var fragments = await this.serviceFragmentRegistry.getAll();
+		for (let fragment of fragments) {
+			const query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( fragment == _$fragID ) ');
+			const bids = await this.bizNetworkConnection.query(query, { fragID: "resource:top.nextnet.gnb.ServiceFragment#" + fragment.getIdentifier() });
+		}
+
+
+
+
+
+	}
+
 	/** Listen for the sale transaction events
 		  */
 	async listen() {
@@ -80,8 +97,6 @@ class SitechainListener {
 		this.bizNetworkConnection.on('event', async (evt) => {
 
 			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewIntentionEvent") {
-
-
 
 
 				var intention = await this.intentionRegistry.get(evt.target.getIdentifier());
@@ -110,6 +125,8 @@ class SitechainListener {
 			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentEvent") {
 				console.log(util.format("a new fragment for service %s published ", evt.target.getIdentifier()));
 			}
+
+
 		})
 
 	}
