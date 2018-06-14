@@ -24,6 +24,39 @@ rule debug{
   action: ALLOW
 }
 
+rule RPAccessFragments{
+   description: "Resource providers can access services fragments"
+  participant: "top.nextnet.gnb.ResourceProvider"
+  operation: READ
+  resource: "top.nextnet.gnb.ServiceFragment"
+  action: ALLOW
+}
+
+
+rule RPCREATEBIDS{
+   description: "Resource providers can access services fragments"
+  participant: "top.nextnet.gnb.ResourceProvider"
+  operation: ALL
+  resource: "top.nextnet.gnb.Bid"
+  action: ALLOW
+}
+
+
+rule RPUpdateFragments{
+   description: "Resource providers can access services fragments"
+  participant: "top.nextnet.gnb.ResourceProvider"
+  operation: UPDATE
+  resource: "top.nextnet.gnb.ServiceFragment"
+  action: ALLOW
+}
+
+rule RpPlaceBids{
+   description: "Resource providers can place bids"
+  participant: "top.nextnet.gnb.ResourceProvider"
+  operation: CREATE
+  resource: "top.nextnet.gnb.PlaceBid"
+  action: ALLOW
+}
 
 
  rule SliceOwnerOnlyhaveAccessToTheirOwnIntention {

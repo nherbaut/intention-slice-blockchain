@@ -134,11 +134,11 @@ describe('#' + namespace, () => {
             const sliceOwnerRegistry = await businessNetworkConnection.getParticipantRegistry(sliceOwnerNS);
             // Create the participants.
             const alice = factory.newResource(namespace, sliceOwnerType, 'alice@email.com');
-           
+
 
 
             const bob = factory.newResource(namespace, sliceOwnerType, 'bob@email.com');
-           
+
 
 
             sliceOwnerRegistry.addAll([alice, bob]);
@@ -188,7 +188,7 @@ describe('#' + namespace, () => {
 
         }
 
-        // Resource Broker instantication
+        // Resource Broker instantiation
 
         {
             const resourceBrokerRegistry = await businessNetworkConnection.getParticipantRegistry("top.nextnet.gnb.ResourceBroker")
@@ -200,6 +200,71 @@ describe('#' + namespace, () => {
 
         }
 
+        //test service, fragments and bid
+        {
+            await useIdentity("MyBroker");
+
+
+
+
+            const serviceRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
+
+            var factory = businessNetworkConnection.getBusinessNetwork().getFactory();
+
+            var service = factory.newResource(namespace, 'Service', 'Service1');
+
+            service.slices = []
+            for (var i = 0; i < 3; i++) {
+                var sr1 = factory.newConcept(namespace, 'TransportSlice');
+                sr1.bandwidth = 10
+                sr1.latency = 20
+                sr1.src = "A" + i
+                sr1.dst = "B" + i
+                sr1.id = uuid()
+                service.slices.push(sr1);
+            }
+
+            service.intention = factory.newRelationship(namespace, "Intention", "Intention3")
+
+            await serviceRegistry.add(service);
+            var service2 = await serviceRegistry.get("Service1")
+            let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
+            transaction.service = factory.newRelationship(namespace, "Service", 'Service1');
+
+            await businessNetworkConnection.submitTransaction(transaction);
+
+            await useIdentity("fooCorp");
+
+            var serviceFragmentRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.ServiceFragment");
+            var fragments = await serviceFragmentRegistry.getAll();
+            var fragment = fragments[0];
+
+            var bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
+
+            var bid1 = factory.newResource("top.nextnet.gnb", "Bid", "BID1");
+            bid1.price = 100;
+            bid1.fragment = factory.newRelationship(namespace, "ServiceFragment", fragment.getIdentifier());
+            bid1.owner = factory.newRelationship(namespace, "ResourceProvider", 'fooCorp');
+
+            var bid2 = factory.newResource("top.nextnet.gnb", "Bid", "BID2");
+            bid2.price = 98;
+            bid2.fragment = factory.newRelationship(namespace, "ServiceFragment", fragment.getIdentifier());
+            bid2.owner = factory.newRelationship(namespace, "ResourceProvider", 'fooCorp');
+
+
+            var bid3 = factory.newResource("top.nextnet.gnb", "Bid", "BID3");
+            bid3.price = 101;
+            bid3.fragment = factory.newRelationship(namespace, "ServiceFragment", fragment.getIdentifier());
+            bid3.owner = factory.newRelationship(namespace, "ResourceProvider", 'barCorp');
+            await bidRegistry.addAll([bid1, bid2, bid3]);
+
+
+
+
+
+
+
+        }
 
 
 
@@ -220,6 +285,121 @@ describe('#' + namespace, () => {
         await businessNetworkConnection.connect(cardName);
         factory = businessNetworkConnection.getBusinessNetwork().getFactory();
     }
+
+
+    it.only("Service Fragments Generation", async () => {
+
+        await useIdentity("MyBroker");
+        const serviceRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
+
+        var factory = businessNetworkConnection.getBusinessNetwork().getFactory();
+
+        var service = factory.newResource(namespace, 'Service', 'Service4');
+
+        service.slices = []
+        for (var i = 0; i < 3; i++) {
+            var sr1 = factory.newConcept(namespace, 'TransportSlice');
+            sr1.bandwidth = 10
+            sr1.latency = 20
+            sr1.src = "A" + i
+            sr1.dst = "B" + i
+            sr1.id = uuid()
+            service.slices.push(sr1);
+        }
+
+        service.intention = factory.newRelationship(namespace, "Intention", "Intention3")
+
+        await serviceRegistry.add(service);
+        var service2 = await serviceRegistry.get("Service4")
+        let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
+        transaction.service = factory.newRelationship(namespace, "Service", 'Service4');
+
+        await businessNetworkConnection.submitTransaction(transaction);
+
+        var serviceFragmentRegistry = await businessNetworkConnection.getAssetRegistry('top.nextnet.gnb.ServiceFragment');
+
+        var fragments = await serviceFragmentRegistry.getAll();
+        fragments.should.have.lengthOf(14);
+        events[0].getType().should.equal("NewServiceFragmentEvent");
+
+        await useIdentity("fooCorp");
+
+
+        fragments = await serviceFragmentRegistry.getAll();
+        fragments.should.have.lengthOf(14);
+
+
+        await useIdentity("fooCorp");
+        var bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
+
+        transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
+        {
+
+
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", uuid());
+            bid.price = 123;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+
+            transaction.target = bid;
+            await businessNetworkConnection.submitTransaction(transaction);
+        }
+
+        {
+            var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
+            var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
+            resultingBestBid.price.should.equal(123);
+        }
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", uuid());
+            bid.price = 124;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+
+            transaction.target = bid;
+            await businessNetworkConnection.submitTransaction(transaction);
+        }
+
+        {
+            var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
+            var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
+            resultingBestBid.price.should.equal(123);
+        }
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", uuid());
+            bid.price = 120;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+
+            transaction.target = bid;
+            await businessNetworkConnection.submitTransaction(transaction);
+        }
+
+        {
+            var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
+            var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
+            resultingBestBid.price.should.equal(120);
+        }
+
+
+
+
+
+    })
+
+
+
+    it("Bid Query", async () => {
+
+        await useIdentity("barCorp");
+        const query = businessNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( owner!=_$me AND fragment == _$fragID)');
+        const assets = await businessNetworkConnection.query(query, { me: "resource:top.nextnet.gnb.ResourceProvider#barCorp", fragID: "resource:top.nextnet.gnb.ServiceFragment#Service1_0" });
+        assets.should.have.lengthOf(2);
+
+    })
+
 
     it('Alice can read only her intentions', async () => {
         // Use the identity for Alice.
@@ -309,47 +489,9 @@ describe('#' + namespace, () => {
         intentions.should.have.lengthOf(1);
     })
 
-    it("Service Fragments Generation", async () => {
-        await useIdentity("MyBroker");
 
 
 
-
-        const serviceRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
-
-        var factory = businessNetworkConnection.getBusinessNetwork().getFactory();
-
-        var service = factory.newResource(namespace, 'Service', 'Service1');
-        
-        service.slices = []
-        for (var i = 0; i < 3; i++) {
-            var sr1 = factory.newConcept(namespace, 'TransportSlice');
-            sr1.bandwidth = 10
-            sr1.latency = 20
-            sr1.src = "A" + i
-            sr1.dst = "B" + i
-            sr1.id=uuid()
-            service.slices.push(sr1);
-        }
-
-        service.intention = factory.newRelationship(namespace, "Intention", "Intention3")
-
-        await serviceRegistry.add(service);
-        var service2 = await serviceRegistry.get("Service1")
-        let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
-        transaction.service = factory.newRelationship(namespace, "Service", 'Service1');
-
-        await businessNetworkConnection.submitTransaction(transaction);
-
-
-        const serviceFragmentRegistry = await businessNetworkConnection.getAssetRegistry('top.nextnet.gnb.ServiceFragment');
-
-        var fragments = await serviceFragmentRegistry.getAll();
-        fragments.should.have.lengthOf(7);
-        events[0].getType().should.equal("NewServiceFragmentEvent");
-
-
-    })
 
 
 });

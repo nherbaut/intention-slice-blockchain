@@ -39,6 +39,41 @@ function* subsets(array, offset = 0) {
 
 /**
  * bla
+ * @param {top.nextnet.gnb.PlaceBid} payload 
+ * @transaction
+ */
+async function placeBidProcessor(payload) {
+
+    var factory = getFactory();
+
+    let serviceFragmentRegistry = await getAssetRegistry("top.nextnet.gnb.ServiceFragment");
+    let bidRegistry = await getAssetRegistry("top.nextnet.gnb.Bid");
+    var fragment = await serviceFragmentRegistry.get(payload.target.fragment.getIdentifier());
+
+
+    if (fragment.hasOwnProperty("bestBid")) {
+        var bestBid = await bidRegistry.get(fragment.bestBid.getIdentifier());
+        if (bestBid.price <= payload.target.price) {
+            return; //return error
+        }
+
+    }
+
+    await bidRegistry.add(payload.target);
+    fragment.bestBid = factory.newRelationship("top.nextnet.gnb", "Bid", payload.target.getIdentifier());
+    await serviceFragmentRegistry.update(fragment);
+
+    var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentEvent');
+    basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
+    basicEvent.message = "new Service Fragment"
+    emit(basicEvent);
+    
+
+
+}
+
+/**
+ * bla
  * @param {top.nextnet.gnb.PublishService} service
  * @transaction
  */

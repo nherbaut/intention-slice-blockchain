@@ -9,9 +9,11 @@ var fs = require('fs');
 var _ = require('underscore');
 var rn = require('random-number');
 var chalk = require('chalk');
+const uuid = require('uuid/v4');
 let config = require('config').get('event-app');
 const LOG = winston.loggers.get('application');
 let cardname = config.get('cardname');
+let resourceProviderName = cardname.split("@")[0]
 let netname = config.get("netname")
 var rnoptions = {
 	min: 0
@@ -30,9 +32,10 @@ class SitechainListener {
 	async init() {
 		this.businessNetworkDefinition = await this.bizNetworkConnection.connect(cardname);
 		this.rpRegistry = await this.bizNetworkConnection.getParticipantRegistry("top.nextnet.gnb.ResourceProvider");
-
-
-
+		this.serviceFragmentRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.ServiceFragment");
+		this.resourceProvider = (await this.rpRegistry.getAll())[0]
+		this.bidRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
+		this.factory = await this.bizNetworkConnection.getBusinessNetwork().getFactory();
 		setInterval(this.updatedb.bind(this), 10000);
 
 	}
@@ -126,6 +129,89 @@ class SitechainListener {
 		}
 	}
 
+	getPriceForSliceTransport(slice, myslice) {
+		if (
+			(slice.src == myslice.src &&
+				slice.dst == myslice.dst) || (slice.src == myslice.dsr &&
+					slice.dst == myslice.src) &&
+				slice.bandwidth <= myslice.bandwidth &&
+			slice.latency >= myslice.latency
+		) {
+			return myslice.price
+		}
+
+		else return -1;
+	}
+
+	getPriceForSliceRadio(slice, myslice) {
+		return -1;
+	}
+
+	getPriceForSliceCompute(slice, myslice) {
+		return -1;
+	}
+
+	getPriceForSlice(slice) {
+		for (let myslice of this.resourceProvider.slices) {
+			var resolver = null;
+			if (slice.getFullyQualifiedType() + "Proposal" == myslice.getFullyQualifiedType()) {
+				switch (slice.getFullyQualifiedType()) {
+					case "top.nextnet.gnb.TransportSlice":
+						resolver = this.getPriceForSliceTransport;
+						break;
+					case "top.nextnet.gnb.ComputeSlice":
+						resolver = this.getPriceForSliceCompute;
+						break;
+					case "top.nextnet.gnb.RadioSlice":
+						resolver = this.getPriceForSliceRadio;
+						break;
+				}
+
+				var price = resolver(slice, myslice);
+				if (price > 0) {
+					return price;
+				}
+
+
+			}
+		}
+
+		return -1;
+
+	}
+	async getBidForFragment(fragment) {
+		let price = 0;
+
+		const query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( owner!=_$me AND fragment == _$fragID)');
+		const assets = await this.bizNetworkConnection.query(query, { me: "resource:top.nextnet.gnb.ResourceProvider#" + resourceProviderName, fragID: "resource:top.nextnet.gnb.ServiceFragment#" + fragment.getIdentifier() });
+
+		if (assets.length == 0) {//if no competition so far
+			var best_buy = 9999
+		}
+		else {
+			var best_buy = assets.sort(function (obj1, obj2) { return obj1.price - obj2.price })[0];
+		}
+
+		//get the cost price, if we can't find it, return error (-1)
+		for (let slice of fragment.slices) {
+
+
+			var slicePrice = this.getPriceForSlice(slice);
+			if (slicePrice > 0) {
+				price += slicePrice;
+			}
+			else return -1;
+		}
+
+		//if we can do better that the best_buy, tell it, otherwise, error
+		if (best_buy > price) {
+			return (best_buy - price) / 2
+		}
+		else {
+			return -1;
+		}
+
+	}
 
 
 	/** Listen for the sale traniiiiiisaction events
@@ -136,8 +222,19 @@ class SitechainListener {
 
 			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentEvent") {
 
-				for (let slice of evt.target.slices) {
-					console.log("they want:" + slice)
+				var serviceFragment = await this.serviceFragmentRegistry.get(evt.target.getIdentifier());
+				var best_price = await this.getBidForFragment(serviceFragment);
+				if (best_price > 0) {
+					var bid = this.factory.newResource("top.nextnet.gnb", "Bid", uuid());
+					bid.price = best_price
+					bid.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", serviceFragment.getIdentifier());
+					bid.owner = this.factory.newRelationship("top.nextnet.gnb", "ResourceProvider", resourceProviderName);
+
+					await this.bidRegistry.add(bid);
+					var placeBidTransaction = this.factory.newTransaction("top.nextnet.gnb", "PlaceBid");
+					placeBidTransaction.target = bid;
+
+					await this.bizNetworkConnection.submitTransaction(placeBidTransaction);
 				}
 
 

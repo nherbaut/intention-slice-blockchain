@@ -36,9 +36,10 @@ asset ServiceFragment identified by id{
   o String id
   o Slice[] slices
   --> Service service
+  --> Bid bestBid optional
 }
 
-abstract concept Slice {
+concept Slice {
   o String id
 }
 
@@ -84,6 +85,14 @@ asset Bid identified by id{
   --> ResourceProvider owner
 } 
 
+event PlaceBidEvent extends Event{
+  o String message
+  --> Bid target
+}
+
+transaction PlaceBid {
+  o Bid target
+}
 
 
 event NewIntentionEvent extends Event{

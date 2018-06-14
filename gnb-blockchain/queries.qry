@@ -1,0 +1,12 @@
+query Q1{
+  description: "Select all services"
+  statement:
+      SELECT top.nextnet.gnb.Service
+}
+
+query Q2{
+  description: "get best offer for fragment"
+  statement:
+    SELECT top.nextnet.gnb.Bid
+      WHERE ( owner != _$me  AND fragment == _$fragID)
+}
