@@ -33,12 +33,12 @@ class SitechainListener {
 		this.businessNetworkDefinition = await this.bizNetworkConnection.connect(cardname);
 		this.rpRegistry = await this.bizNetworkConnection.getParticipantRegistry("top.nextnet.gnb.ResourceProvider");
 		this.serviceFragmentRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.ServiceFragment");
-		this.resourceProvider = (await this.rpRegistry.getAll())[0]
+
 		this.bidRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
 		this.factory = await this.bizNetworkConnection.getBusinessNetwork().getFactory();
-		await this.updatedb;
+		await this.updatedb();
 		setInterval(this.updatedb.bind(this), 10000);
-		
+
 
 	}
 
@@ -184,16 +184,7 @@ class SitechainListener {
 	async getBidForFragment(fragment) {
 		let price = 0;
 
-		const query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( owner!=_$me AND fragment == _$fragID)');
-		const assets = await this.bizNetworkConnection.query(query, { me: "resource:top.nextnet.gnb.ResourceProvider#" + resourceProviderName, fragID: "resource:top.nextnet.gnb.ServiceFragment#" + fragment.getIdentifier() });
-
-		if (assets.length == 0) {//if no competition so far
-			var best_buy = 9999
-		}
-		else {
-			var best_buy = assets.sort(function (obj1, obj2) { return obj1.price - obj2.price })[0];
-		}
-
+		var bestPrice = fragment.bestPrice == undefined ? 9999999 : fragment.bestPrice
 		//get the cost price, if we can't find it, return error (-1)
 		for (let slice of fragment.slices) {
 
@@ -206,8 +197,8 @@ class SitechainListener {
 		}
 
 		//if we can do better that the best_buy, tell it, otherwise, error
-		if (best_buy > price) {
-			return (best_buy - price) / 2
+		if (bestPrice > price) {
+			return Math.min((bestPrice - price) / 2, price * 2);
 		}
 		else {
 			return -1;
@@ -225,15 +216,13 @@ class SitechainListener {
 			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentEvent") {
 
 				var serviceFragment = await this.serviceFragmentRegistry.get(evt.target.getIdentifier());
-				var bestBidderId = undefined;
-				if (serviceFragment.bestBid != undefined) {
-					var bestBidder = await this.bidRegistry.get(serviceFragment.bestBid.getIdentifier());
-					bestBidderId = bestBidder.owner.getIdentifier();
-				}
-				if (serviceFragment.bestBid == undefined || bestBidderId != resourceProviderName) {//no self concurrence!
+
+				if (serviceFragment.bestBid == undefined || serviceFragment.bestRP.getIdentifier() != resourceProviderName) {//no self concurrence!
 					var best_price = await this.getBidForFragment(serviceFragment);
-					console.log("trying to compete with " + bestBidderId + " / " + best_price + " for fragment " + serviceFragment.getIdentifier());
+					var competitorName = serviceFragment.bestRP == undefined ? "no one" : serviceFragment.bestRP.getIdentifier()
+
 					if (best_price > 0) {
+						console.log("competing with " + competitorName + "  " + serviceFragment.bestPrice + " vs " + resourceProviderName + " " + best_price + " for fragment " + serviceFragment.getIdentifier());
 						var bid = this.factory.newResource("top.nextnet.gnb", "Bid", uuid());
 						bid.price = best_price
 						bid.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", serviceFragment.getIdentifier());
@@ -243,17 +232,7 @@ class SitechainListener {
 						var placeBidTransaction = this.factory.newTransaction("top.nextnet.gnb", "PlaceBid");
 						placeBidTransaction.target = bid;
 
-						while (true) {
-
-							try {
-								await this.bizNetworkConnection.submitTransaction(placeBidTransaction);
-							}
-							catch (err) {
-
-								continue;
-							}
-							break;
-						}
+						await this.bizNetworkConnection.submitTransaction(placeBidTransaction);
 					}
 				}
 

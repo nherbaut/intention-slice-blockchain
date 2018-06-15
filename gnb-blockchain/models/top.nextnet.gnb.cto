@@ -27,6 +27,7 @@ asset Intention identified by intentionId{
 asset Service identified by serviceId{
   o String serviceId
   o Boolean public default=false
+  o DateTime lastUpdate optional
   --> Intention intention
   o Slice[] slices optional
   
@@ -34,8 +35,10 @@ asset Service identified by serviceId{
 
 asset ServiceFragment identified by id{
   o String id
+  o Boolean obsolete default=false
   o Slice[] slices
   o Double bestPrice optional
+  o DateTime lastUpdate optional
   --> Service service
   --> ResourceProvider bestRP optional
   --> Bid bestBid optional
