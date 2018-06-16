@@ -18,14 +18,18 @@ participant ResourceBroker identified by id{
 
 asset Intention identified by intentionId{
   o Boolean public default=false
+  o Boolean arbitrated default=false
   o String intentionId
   o String intentionData
+  
   --> SliceOwner owner 
   --> Service[] services optional
 }
 
 asset Service identified by serviceId{
   o String serviceId
+  o Double bestPrice optional
+  --> ServiceFragment[] bestFragments optional 
   o Boolean public default=false
   o DateTime lastUpdate optional
   --> Intention intention
@@ -106,6 +110,11 @@ transaction ArbitrateServiceFragment{
 }
 
 
+transaction ArbitrateIntention{
+  --> Intention intention
+}
+
+
 event NewIntentionEvent extends Event{
   o String message
   --> Intention target
@@ -127,6 +136,11 @@ transaction PublishService {
 event NewServiceFragmentEvent extends Event{
   o String message
   --> ServiceFragment target
+}
+
+event IntentionResolvedEvent extends Event{
+  --> Intention intention
+  
 }
 
 transaction PublishServiceFragment {

@@ -45,7 +45,12 @@ class SitechainListener {
 		this.serviceFragmentRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.ServiceFragment");
 		this.publishServiceTransactionRegistry = await this.bizNetworkConnection.getTransactionRegistry("top.nextnet.gnb.PublishService");
 		this.factory = await this.bizNetworkConnection.getBusinessNetwork().getFactory();
-		setInterval(this.arbitrateServiceFragments.bind(this), 20 * 1000);
+
+		this.serviceFragmentArbitrationRunning = false;
+		setInterval(this.arbitrateServiceFragments.bind(this), 5 * 1000);
+
+		this.intentionArbitrationRunning = false;
+		setInterval(this.arbitrateService.bind(this), 5 * 1000);
 
 	}
 
@@ -70,6 +75,7 @@ class SitechainListener {
 			var service = this.factory.newResource("top.nextnet.gnb", "Service", id);
 			service.serviceId = id
 			service.slices = []
+			service.bestFragments = []
 			for (let j of [0, 1, 2, 3]) {
 				service.slices.push(this.get_random_slice());
 			}
@@ -88,33 +94,68 @@ class SitechainListener {
 	async arbitrateServiceFragments() {
 
 
-		const query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.ServiceFragment WHERE ( obsolete == false AND _$timeout<lastUpdate  ) ');
-		this.bizNetworkConnection.query(query, { timeout: new Date(new Date().getTime() - 60 * 1000) }).then(fragments => {
+		if (!this.serviceFragmentArbitrationRunning) {
 
-			for (let fragment of fragments) {
+			this.serviceFragmentArbitrationRunning = True
+			const query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.ServiceFragment WHERE ( obsolete == false AND _$timeout<lastUpdate  ) ');
+			this.bizNetworkConnection.query(query, { timeout: new Date(new Date().getTime() - 60 * 1000) }).then(fragments => {
 
-				console.log("checking bids for " + fragment.getIdentifier());
-				const query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( obsolete == false AND fragment==_$fragment  ) ');
-				this.bizNetworkConnection.query(query, { fragment: "resource:top.nextnet.gnb.ServiceFragment#" + fragment.getIdentifier() }).then(bids => {
+				for (let fragment of fragments) {
 
-					if ((bids.length == 1 && fragment.bestBid != undefined) || bids.length > 0) {
-						console.log("arbitration required for fragment " + fragment.getIdentifier());
-						var serviceFragmentArbitration = this.factory.newTransaction("top.nextnet.gnb", "ArbitrateServiceFragment");
+					//saving on transaction issuing when no new bid is published
+					console.log("checking bids for " + fragment.getIdentifier());
+					const query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( obsolete == false AND fragment==_$fragment  ) ');
+					this.bizNetworkConnection.query(query, { fragment: "resource:top.nextnet.gnb.ServiceFragment#" + fragment.getIdentifier() }).then(bids => {
 
-						serviceFragmentArbitration.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", fragment.getIdentifier());
-						this.bizNetworkConnection.submitTransaction(serviceFragmentArbitration).then(console.log("Fragment " + fragment.getIdentifier() + " asked for arbitration"));
+						if ((bids.length == 1 && fragment.bestBid != undefined) || bids.length > 0) {
+							console.log("arbitration required for fragment " + fragment.getIdentifier());
+							var serviceFragmentArbitration = this.factory.newTransaction("top.nextnet.gnb", "ArbitrateServiceFragment");
 
-					}
-					else {
-						console.log("no new bids for fragment " + fragment.getIdentifier());
-					}
+							serviceFragmentArbitration.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", fragment.getIdentifier());
+							this.bizNetworkConnection.submitTransaction(serviceFragmentArbitration).then(console.log("Fragment " + fragment.getIdentifier() + " asked for arbitration"));
 
-				});
-			}
-		});
+						}
+						else {
+							console.log("no new bids for fragment " + fragment.getIdentifier());
+						}
 
-		console.log("arbitrateServiceFragments done");
+					});
+				}
+			});
 
+			console.log("arbitrateServiceFragments done");
+			this.serviceFragmentArbitrationRunning = False;
+		}
+
+	}
+
+
+
+	async arbitrateIntentions() {
+
+
+		if (!this.intentionArbitrationRunning) {
+			this.intentionArbitrationRunning = true;
+			var query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Intention WHERE ( arbitrated== false  ) ');
+			this.bizNetworkConnection.query(query).then(intentions => {
+
+
+				for (let intention of intentions) {
+
+					var arbitrateIntention = this.factory.newTransaction("top.nextnet.gnb", "ArbitrateIntention");
+
+					arbitrateIntention.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", fragment.getIdentifier());
+					this.bizNetworkConnection.submitTransaction(serviceFragmentArbitration).then(console.log("Fragment " + fragment.getIdentifier() + " asked for arbitration"));
+
+
+
+
+				}
+			});
+
+			console.log("arbitrateServiceFragments done");
+			this.intentionArbitrationRunning = false;
+		}
 	}
 
 	/** Listen for the sale transaction events
@@ -138,7 +179,7 @@ class SitechainListener {
 					var newServiceEvent = this.factory.newEvent("top.nextnet.gnb", "NewServiceEvent");
 					newServiceEvent.target = this.factory.newRelationship("top.nextnet.gnb", "Service", service_id);
 					this.bizNetworkConnection.emit(newServiceEvent);
-					var publishfragmentfragmentfragmentServiceTransaction = this.factory.newTransaction("top.nextnet.gnb", "PublishService");
+					var publishServiceTransaction = this.factory.newTransaction("top.nextnet.gnb", "PublishService");
 					publishServiceTransaction.service = this.factory.newRelationship("top.nextnet.gnb", "Service", service_id);
 					await this.bizNetworkConnection.submitTransaction(publishServiceTransaction);
 					console.log("a Service has been published " + publishServiceTransaction.getIdentifier());

@@ -32,7 +32,7 @@ const intentionNS = namespace + '.' + intentionType;
 const sliceOwnerType = 'SliceOwner';
 const sliceOwnerNS = namespace + '.' + sliceOwnerType;
 const resourceProviderType = "ResourceProvider";
-const resourceProviderNS = namespace + "." + resourceProviderType
+const resourceProviderNS = namespace + "." + resourceProviderType;
 
 
 describe('#' + namespace, () => {
@@ -225,7 +225,7 @@ describe('#' + namespace, () => {
             }
 
             service.intention = factory.newRelationship(namespace, "Intention", "Intention3")
-
+            service.bestFragments = []
             await serviceRegistry.add(service);
             var service2 = await serviceRegistry.get("Service1")
             let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
@@ -287,7 +287,7 @@ describe('#' + namespace, () => {
     }
 
 
-    it.only("Service Fragments Generation", async () => {
+    it("Service Fragments Generation", async () => {
 
         await useIdentity("MyBroker");
         const serviceRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
@@ -423,10 +423,119 @@ describe('#' + namespace, () => {
             var obsobid = await bidRegistry.get("Bid121");
             obsobid.obsolete.should.equal(true);
         }
+    });
+
+    it.only("Arbitrate Service", async () => {
+
+        const prices = { "ServiceA_0": 100, "ServiceA_1": 100, "ServiceA_2": 100, "ServiceA_3": 10, "ServiceA_4": 10, "ServiceA_5": 100, "ServiceA_6": 100, "ServiceB_0": 100, "ServiceB_1": 100, "ServiceB_2": 100, "ServiceB_3": 100, "ServiceB_4": 100, "ServiceB_5": 100, "ServiceB_6": 100 }
+        await useIdentity("alice");
+
+        const intentionRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Intention");
+        const factory = businessNetworkConnection.getBusinessNetwork().getFactory();
+
+
+        {
+            var intentionZ = factory.newResource(namespace, "Intention", "IntentionZ");
+            intentionZ.intentionData = ''
+            intentionZ.owner = factory.newRelationship(namespace, "SliceOwner", "alice@email.com");
+            await intentionRegistry.add(intentionZ);
+        }
+
+        await useIdentity("MyBroker");
+        const serviceRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
+        const serviceFragmentRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.ServiceFragment");
+        const bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
+        var tid = 0;
+        {
+            var serviceA = factory.newResource(namespace, 'Service', 'ServiceA');
+
+            serviceA.slices = []
+            for (var i = 0; i < 3; i++) {
+                var sr1 = factory.newConcept(namespace, 'TransportSlice');
+                sr1.bandwidth = 10
+                sr1.latency = 20
+                sr1.src = "SRC_A" + i
+                sr1.dst = "DST_A" + i
+                sr1.id = "transport" + tid++
+                serviceA.slices.push(sr1);
+            }
+            serviceA.intention = factory.newRelationship(namespace, "Intention", "IntentionZ")
+            serviceA.bestFragments = []
+            await serviceRegistry.add(serviceA)
+        }
+
+        var serviceB = factory.newResource(namespace, 'Service', 'ServiceB');
+
+        serviceB.slices = []
+        for (var i = 0; i < 3; i++) {
+            var sr1 = factory.newConcept(namespace, 'TransportSlice');
+            sr1.bandwidth = 10
+            sr1.latency = 20
+            sr1.src = "SRC_B" + i
+            sr1.dst = "DST_B" + i
+            sr1.id = "transport" + tid++
+            serviceB.slices.push(sr1);
+        }
+
+        serviceB.intention = factory.newRelationship(namespace, "Intention", "IntentionZ")
+        serviceB.bestFragments = []
+        await serviceRegistry.add(serviceB)
+
+
+        {
+            let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
+            transaction.service = factory.newRelationship(namespace, "Service", serviceA.getIdentifier());
+            await businessNetworkConnection.submitTransaction(transaction);
+        }
+        {
+            let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
+            transaction.service = factory.newRelationship(namespace, "Service", serviceB.getIdentifier());
+            await businessNetworkConnection.submitTransaction(transaction);
+        }
+
+        const serviceAFragmentQuery = businessNetworkConnection.buildQuery("SELECT top.nextnet.gnb.ServiceFragment WHERE ( service == _$serviceId) ");
+        const serviceAfragments = await businessNetworkConnection.query(serviceAFragmentQuery, { serviceId: "resource:" + serviceA.getFullyQualifiedIdentifier() });
+
+        for (let entry of [...serviceAfragments.entries()]) {
+            var [index, fragment] = entry;
+            fragment.bestPrice = prices[fragment.getIdentifier()]
+            console.log("Fragment " + fragment.getIdentifier() + " composed of " + fragment.slices.reduce((acc, s) => acc + s.id + " ", "") + " with price " + fragment.bestPrice)
+
+            await serviceFragmentRegistry.update(fragment);
+        }
 
 
 
-    })
+        const serviceBFragmentQuery = businessNetworkConnection.buildQuery("SELECT top.nextnet.gnb.ServiceFragment WHERE ( service == _$serviceId) ");
+        const serviceBfragments = await businessNetworkConnection.query(serviceBFragmentQuery, { serviceId: "resource:" + serviceB.getFullyQualifiedIdentifier() });
+
+
+        for (let entry of [...serviceBfragments.entries()]) {
+            var [index, fragment] = entry;
+            fragment.bestPrice = prices[fragment.getIdentifier()]
+            console.log("Fragment " + fragment.getIdentifier() + " composed of " + fragment.slices.reduce((acc, s) => acc + s.id + " ", "") + " with price " + fragment.bestPrice)
+
+            await serviceFragmentRegistry.update(fragment);
+        }
+
+
+        {
+            let transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateIntention');
+            transaction.intention = factory.newRelationship(namespace, "Intention", intentionZ.getIdentifier());
+            await businessNetworkConnection.submitTransaction(transaction);
+        }
+
+        intentionZ = await intentionRegistry.get(intentionZ.getIdentifier());
+
+        intentionZ.arbitrated.should.equal(true);
+        intentionZ.services.should.have.lengthOf(1);
+        var service = await serviceRegistry.get(intentionZ.services[0].getIdentifier());
+
+        service.bestPrice.should.equal(20);
+
+    });
+
+
 
 
 
@@ -437,7 +546,7 @@ describe('#' + namespace, () => {
         const assets = await businessNetworkConnection.query(query, { me: "resource:top.nextnet.gnb.ResourceProvider#barCorp", fragID: "resource:top.nextnet.gnb.ServiceFragment#Service1_0" });
         assets.should.have.lengthOf(2);
 
-    })
+    });
 
 
     it('Alice can read only her intentions', async () => {

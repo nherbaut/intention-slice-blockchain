@@ -49,11 +49,20 @@ rule RBCanArbitrateSF{
   action: ALLOW
 }
 
+
+rule RBCanArbitrateI{
+   description: "Resource broker can arbitrate services fragments"
+  participant: "top.nextnet.gnb.ResourceBroker"
+  operation: ALL
+  resource: "top.nextnet.gnb.ArbitrateIntention"
+  action: ALLOW
+}
+
 rule RBAccessBid{
    description: "Resource broker can arbitrate services fragments"
   participant: "top.nextnet.gnb.ResourceBroker"
   operation: ALL
-  resource: "top.nextnet.gnb.Bid"
+  resource: "**"
   action: ALLOW
 }
 
