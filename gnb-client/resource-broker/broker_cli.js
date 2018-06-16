@@ -50,17 +50,18 @@ class SitechainListener {
 		setInterval(this.arbitrateServiceFragments.bind(this), 5 * 1000);
 
 		this.intentionArbitrationRunning = false;
-		setInterval(this.arbitrateService.bind(this), 5 * 1000);
+		setInterval(this.arbitrateIntentions.bind(this), 5 * 1000);
 
 	}
 
 
-	get_random_slice() {
+	get_random_slice(src, dst) {
+		var nodes = [0, 2, 3, 11, 5, 7]
 		var slice = this.factory.newConcept("top.nextnet.gnb", "TransportSlice")
-		slice.src = "" + Math.floor(Math.random() * 100);
-		slice.dst = "" + Math.floor(Math.random() * 100);
-		slice.bandwidth = Math.floor(Math.random() * 100);
-		slice.latency = Math.floor(Math.random() * 20) + 5;
+		slice.src = src;
+		slice.dst = dst
+		slice.bandwidth = 10
+		slice.latency = 200;
 		slice.id = uuid();
 
 		return slice;
@@ -70,15 +71,17 @@ class SitechainListener {
 		var intentionData = intention.intentionData
 
 		var services = []
-		for (let i of [0, 1, 2]) {
+		for (let i of [0, 1]) {
 			var id = uuid().replace("-", "");
 			var service = this.factory.newResource("top.nextnet.gnb", "Service", id);
 			service.serviceId = id
 			service.slices = []
 			service.bestFragments = []
-			for (let j of [0, 1, 2, 3]) {
-				service.slices.push(this.get_random_slice());
-			}
+
+			service.slices.push(this.get_random_slice("0", "2"));
+
+			service.slices.push(this.get_random_slice("3", "11"));
+			service.slices.push(this.get_random_slice("5", "7"));
 			service.public = true;
 			service.lastUpdate = new Date();
 			service.intention = this.factory.newRelationship("top.nextnet.gnb", "Intention", intention.getIdentifier());
@@ -96,7 +99,7 @@ class SitechainListener {
 
 		if (!this.serviceFragmentArbitrationRunning) {
 
-			this.serviceFragmentArbitrationRunning = True
+			this.serviceFragmentArbitrationRunning = true
 			const query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.ServiceFragment WHERE ( obsolete == false AND _$timeout<lastUpdate  ) ');
 			this.bizNetworkConnection.query(query, { timeout: new Date(new Date().getTime() - 60 * 1000) }).then(fragments => {
 
@@ -124,7 +127,7 @@ class SitechainListener {
 			});
 
 			console.log("arbitrateServiceFragments done");
-			this.serviceFragmentArbitrationRunning = False;
+			this.serviceFragmentArbitrationRunning = false;
 		}
 
 	}
@@ -136,24 +139,22 @@ class SitechainListener {
 
 		if (!this.intentionArbitrationRunning) {
 			this.intentionArbitrationRunning = true;
-			var query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Intention WHERE ( arbitrated== false  ) ');
-			this.bizNetworkConnection.query(query).then(intentions => {
+			var query = this.bizNetworkConnection.buildQuery('SELECT top.nextnet.gnb.Intention WHERE ( arbitrated == false  ) ');
+			this.bizNetworkConnection.query(query).then(async intentions => {
 
 
 				for (let intention of intentions) {
 
 					var arbitrateIntention = this.factory.newTransaction("top.nextnet.gnb", "ArbitrateIntention");
 
-					arbitrateIntention.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", fragment.getIdentifier());
-					this.bizNetworkConnection.submitTransaction(serviceFragmentArbitration).then(console.log("Fragment " + fragment.getIdentifier() + " asked for arbitration"));
+					arbitrateIntention.intention = this.factory.newRelationship("top.nextnet.gnb", "Intention", intention.getIdentifier());
 
-
-
+					await this.bizNetworkConnection.submitTransaction(arbitrateIntention)
 
 				}
 			});
 
-			console.log("arbitrateServiceFragments done");
+			console.log("arbitrateIntention done");
 			this.intentionArbitrationRunning = false;
 		}
 	}
@@ -181,7 +182,7 @@ class SitechainListener {
 					this.bizNetworkConnection.emit(newServiceEvent);
 					var publishServiceTransaction = this.factory.newTransaction("top.nextnet.gnb", "PublishService");
 					publishServiceTransaction.service = this.factory.newRelationship("top.nextnet.gnb", "Service", service_id);
-					await this.bizNetworkConnection.submitTransaction(publishServiceTransaction);
+					this.bizNetworkConnection.submitTransaction(publishServiceTransaction);
 					console.log("a Service has been published " + publishServiceTransaction.getIdentifier());
 				};
 

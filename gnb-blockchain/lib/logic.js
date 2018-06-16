@@ -153,18 +153,20 @@ async function ArbitrateIntention(payload) {
     }
 
 
-    await serviceRegistry.update(bestService);
+    if (bestService != undefined) {
+        await serviceRegistry.update(bestService);
 
 
-    let intentionRepository = await getAssetRegistry("top.nextnet.gnb.Intention");
-    intention.arbitrated = true;
-    intention.services = [factory.newRelationship("top.nextnet.gnb", "Service", bestService.getIdentifier())]
-    await intentionRepository.update(intention);
+        let intentionRepository = await getAssetRegistry("top.nextnet.gnb.Intention");
+        intention.arbitrated = true;
+        intention.services = [factory.newRelationship("top.nextnet.gnb", "Service", bestService.getIdentifier())]
+        await intentionRepository.update(intention);
 
-    var basicEvent = factory.newEvent('top.nextnet.gnb', 'IntentionResolvedEvent');
-    basicEvent.intention = factory.newRelationship('top.nextnet.gnb', "Intention", intention.getIdentifier());
+        var basicEvent = factory.newEvent('top.nextnet.gnb', 'IntentionResolvedEvent');
+        basicEvent.intention = factory.newRelationship('top.nextnet.gnb', "Intention", intention.getIdentifier());
 
-    emit(basicEvent);
+        emit(basicEvent);
+    }
 
 
 }

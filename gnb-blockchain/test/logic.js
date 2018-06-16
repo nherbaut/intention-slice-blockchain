@@ -425,7 +425,7 @@ describe('#' + namespace, () => {
         }
     });
 
-    it.only("Arbitrate Service", async () => {
+    it("Arbitrate Service", async () => {
 
         const prices = { "ServiceA_0": 100, "ServiceA_1": 100, "ServiceA_2": 100, "ServiceA_3": 10, "ServiceA_4": 10, "ServiceA_5": 100, "ServiceA_6": 100, "ServiceB_0": 100, "ServiceB_1": 100, "ServiceB_2": 100, "ServiceB_3": 100, "ServiceB_4": 100, "ServiceB_5": 100, "ServiceB_6": 100 }
         await useIdentity("alice");
@@ -499,7 +499,7 @@ describe('#' + namespace, () => {
         for (let entry of [...serviceAfragments.entries()]) {
             var [index, fragment] = entry;
             fragment.bestPrice = prices[fragment.getIdentifier()]
-            console.log("Fragment " + fragment.getIdentifier() + " composed of " + fragment.slices.reduce((acc, s) => acc + s.id + " ", "") + " with price " + fragment.bestPrice)
+            console.debug("Fragment " + fragment.getIdentifier() + " composed of " + fragment.slices.reduce((acc, s) => acc + s.id + " ", "") + " with price " + fragment.bestPrice)
 
             await serviceFragmentRegistry.update(fragment);
         }
@@ -513,7 +513,7 @@ describe('#' + namespace, () => {
         for (let entry of [...serviceBfragments.entries()]) {
             var [index, fragment] = entry;
             fragment.bestPrice = prices[fragment.getIdentifier()]
-            console.log("Fragment " + fragment.getIdentifier() + " composed of " + fragment.slices.reduce((acc, s) => acc + s.id + " ", "") + " with price " + fragment.bestPrice)
+            console.debug("Fragment " + fragment.getIdentifier() + " composed of " + fragment.slices.reduce((acc, s) => acc + s.id + " ", "") + " with price " + fragment.bestPrice)
 
             await serviceFragmentRegistry.update(fragment);
         }
@@ -532,6 +532,10 @@ describe('#' + namespace, () => {
         var service = await serviceRegistry.get(intentionZ.services[0].getIdentifier());
 
         service.bestPrice.should.equal(20);
+
+        var evt = events.pop();
+        evt.getType().should.equal("IntentionResolvedEvent");
+        evt.intention.getIdentifier().should.equal("IntentionZ");
 
     });
 
@@ -603,7 +607,6 @@ describe('#' + namespace, () => {
 
         var factory = businessNetworkConnection.getBusinessNetwork().getFactory();
 
-        var participalRegistry = await businessNetworkConnection.getParticipantRegistry(sliceOwnerNS);
 
         var intention = factory.newResource(namespace, 'Intention', 'Intention3');
         intention.intentionData = "I want 1000 users in Bordeaux from Paris"
@@ -634,7 +637,7 @@ describe('#' + namespace, () => {
         var intentionRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Intention");
         var intentions = await intentionRegistry.getAll()
 
-        intentions.should.have.lengthOf(1);
+        intentions.length.should.equal(2);
     })
 
 
