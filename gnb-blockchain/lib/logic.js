@@ -46,29 +46,8 @@ async function placeBidProcessor(payload) {
 
     var factory = getFactory();
 
-    let serviceFragmentRegistry = await getAssetRegistry("top.nextnet.gnb.ServiceFragment");
-    let bidRegistry = await getAssetRegistry("top.nextnet.gnb.Bid");
-    var fragment = await serviceFragmentRegistry.get(payload.target.fragment.getIdentifier());
-
-
-    if (fragment.hasOwnProperty("bestPrice")) {
-
-        if (payload.target.price > fragment.bestPrice) {
-            return; //return error
-        }
-
-    }
-
-    await bidRegistry.add(payload.target);
-
-
-
     var basicEvent = factory.newEvent('top.nextnet.gnb', 'PlaceBidEvent');
-    basicEvent.fragment = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
-    basicEvent.target = factory.newRelationship('top.nextnet.gnb', "Bid", payload.target.id);
-
-
-    basicEvent.message = "new bid"
+    basicEvent.target = payload.target;
     emit(basicEvent);
 }
 
@@ -180,34 +159,39 @@ async function arbitrateServiceFragment(payload) {
 
     const aquery = buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( fragment == _$fragID AND obsolete==false)');
     const bids = await query(aquery, { fragID: "resource:top.nextnet.gnb.ServiceFragment#" + payload.fragment.getIdentifier() });
-    var bestPrice = 99999999;
 
-    let bidRegistry = await getAssetRegistry("top.nextnet.gnb.Bid");
 
-    var bestBid = undefined;
+    let serviceFragmentRegistry = await getAssetRegistry("top.nextnet.gnb.ServiceFragment");
+
+    var fragment = await serviceFragmentRegistry.get(payload.fragment.getIdentifier());
+
+    var bestPrice = fragment.bestPrice == undefined ? 99999999 : fragment.bestPrice;
+    var betterCompetitor = undefined;
     for (let bid of bids) {
         if (bid.price < bestPrice) {
-            bestBid = bid;
+            betterCompetitor = bid;
             bestPrice = bid.price;
 
         }
         else {
             bid.obsolete = true;
-            bidRegistry.update(bid).then(console.log("obsoleted bid " + bid.getIdentifier()));
+
         }
     }
-    if (bestBid != undefined) {
-        let serviceFragmentRegistry = await getAssetRegistry("top.nextnet.gnb.ServiceFragment");
-        var fragment = await serviceFragmentRegistry.get(payload.fragment.getIdentifier());
+
+    //let bidRegistry = await getAssetRegistry("top.nextnet.gnb.Bid");
+    //await bidRegistry.updateAll(bids);
+    if (betterCompetitor != undefined) {
+
         fragment.bestPrice = bestPrice
-        fragment.bestBid = factory.newRelationship("top.nextnet.gnb", "Bid", bestBid.getIdentifier());
-        fragment.bestRP = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", bestBid.owner.getIdentifier());
+        fragment.bestBid = factory.newRelationship("top.nextnet.gnb", "Bid", betterCompetitor.getIdentifier());
+        fragment.bestRP = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", betterCompetitor.owner.getIdentifier());
         fragment.lastUpdate = new Date();
         await serviceFragmentRegistry.update(fragment);
 
         var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentEvent');
-        basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
-        basicEvent.message = "new Service Fragment"
+        //basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
+        basicEvent.target = fragment;
         emit(basicEvent);
     }
 
@@ -250,18 +234,15 @@ async function servicePublicationProcessor(payload) {
         fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", payload.service.getIdentifier());
         fragment.lastUpdate = new Date();
         fragments.push(fragment);
-    }
-
-    await serviceFragmentRegistry.addAll(fragments);
-    let frags = await serviceFragmentRegistry.getAll()
-
-    for (let fragment of fragments) {
+        fragment.intention = factory.newRelationship("top.nextnet.gnb", "Intention", payload.service.intention.getIdentifier());
+        await serviceFragmentRegistry.add(fragment);
 
         var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentEvent');
-        basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
-        basicEvent.message = "new Service Fragment"
+        //basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
+        basicEvent.target = fragment;
+        
         emit(basicEvent);
-
     }
+
 
 }

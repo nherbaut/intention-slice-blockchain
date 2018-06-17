@@ -44,6 +44,7 @@ asset ServiceFragment identified by id{
   o Double bestPrice optional
   o DateTime lastUpdate optional
   --> Service service
+  --> Intention intention
   --> ResourceProvider bestRP optional
   --> Bid bestBid optional
 }
@@ -96,9 +97,7 @@ asset Bid identified by id{
 } 
 
 event PlaceBidEvent extends Event{
-  o String message
-  --> Bid target
-  --> ServiceFragment fragment
+  o Bid target
 }
 
 transaction PlaceBid {
@@ -134,8 +133,7 @@ transaction PublishService {
 }
 
 event NewServiceFragmentEvent extends Event{
-  o String message
-  --> ServiceFragment target
+  o ServiceFragment target
 }
 
 event IntentionResolvedEvent extends Event{
