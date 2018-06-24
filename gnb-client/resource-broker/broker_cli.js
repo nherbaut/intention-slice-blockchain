@@ -47,9 +47,11 @@ class SitechainListener {
 		this.serviceRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.Service");
 		this.serviceFragmentRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.ServiceFragment");
 		this.publishServiceTransactionRegistry = await this.bizNetworkConnection.getTransactionRegistry("top.nextnet.gnb.PublishService");
+		this.bidRegistry = await this.bizNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
 		this.factory = await this.bizNetworkConnection.getBusinessNetwork().getFactory();
 		this.updatedFragments = new Map();
 		this.fragmentTimeouts = new Map();
+		this.intentionTimeoutMap = new Map();
 
 	}
 
@@ -75,14 +77,12 @@ class SitechainListener {
 			var service = this.factory.newResource("top.nextnet.gnb", "Service", id);
 			service.serviceId = id
 			service.slices = []
-			service.bestFragments = []
+
 
 			service.slices.push(this.get_random_slice("0", "2"));
 
 			service.slices.push(this.get_random_slice("3", "11"));
 			service.slices.push(this.get_random_slice("5", "7"));
-			service.public = true;
-			service.lastUpdate = new Date();
 			service.intention = this.factory.newRelationship("top.nextnet.gnb", "Intention", intention.getIdentifier());
 			services.push(service);
 		}
@@ -97,16 +97,16 @@ class SitechainListener {
 
 		try {
 
-
-			if (this.updatedFragments[fragmentId] == true) {
-				this.updatedFragments[fragmentId] = false;
+			var localFragmentData = this.updatedFragments.get(fragmentId);
+			if (localFragmentData != undefined && localFragmentData.updated == true) {
+				localFragmentData.updated = false;
+				var deal = localFragmentData.bestDeal;
 				console.log("arbitrating dirty fragment " + fragmentId);
-
-
 				var serviceFragmentArbitration = this.factory.newTransaction("top.nextnet.gnb", "ArbitrateServiceFragment");
-
-				serviceFragmentArbitration.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", fragmentId);
+				serviceFragmentArbitration.bestDeal = deal;
+				var start = new Date();
 				await this.bizNetworkConnection.submitTransaction(serviceFragmentArbitration);
+				console.log("took " + (new Date().getTime() - start.getTime()) + " for service Fragment Arbitration" + deal.fragment.getIdentifier());
 				//console.log("took " + (new Date().getTime() - timer) + " to arbritrate service fragment");
 
 
@@ -142,17 +142,21 @@ class SitechainListener {
 			if (winnerIntention.services.length == 1) {
 
 				var winnserService = await this.serviceRegistry.get(winnerIntention.services[0].getIdentifier());
-				var bestPrice = winnserService.bestPrice;
-				console.log("######### " + bestPrice);
-				for (var fragment of bestFragments.bestFragments) {
-					var resolvedFragment = await this.serviceFragmentRegistry.get(fragment.getIdentifier());
-					var rp = resolvedFragment.bestRP;
-					console.log("######### from " + rp);
-					for (var slice of resolvedFragment.slices) {
-						console.log("############ for " + slice);
-					}
-				}
+				var bids = [];
 
+				var bestPrice = 0.0;
+				for (let bidId of winnserService.bestBids) {
+					var bid = this.bidRegistry.resolve(bidId.getIdentifier());
+					bids.push(bid);
+					bestPrice += bid.price;
+				}
+				console.log(" Best price is " + bestPrice);
+				bids.map(bid => { bid.fragment }).map(frag => { console.log(frag) });
+
+
+			}
+			else {
+				throw new Error("there should be only 1 service after arbitration...")
 			}
 
 
@@ -201,24 +205,52 @@ class SitechainListener {
 
 			}
 			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentEvent") {
-				console.log("New service Fragment " + evt.target.fragment.getIdentifier());
+				console.log("New service Fragment " + evt.target.getIdentifier());
 
+				var fragment = evt.target;
 				//no timeout so far, we create it
-				if (this.intentionTimeoutMap.get(evt.target.fragment.getIdentifier()) == undefined) {
-					var fragment = await this.serviceRegistry.get(evt.target.fragment.getIdentifier());
-					var timeout = setInterval(this.arbitrateServiceFragment.bind(this), timeoutSFArbitrate, evt.target.fragment.getIdentifier());;
-					this.intentionTimeoutMap.set(evt.target.fragment.getIdentifier(), { intention: fragment.intention.getIdentifier(), timeout: timeout });
+				if (this.intentionTimeoutMap.get(evt.target.getIdentifier()) == undefined) {
+
+					var timeout = setInterval(this.arbitrateServiceFragment.bind(this), timeoutSFArbitrate, fragment.getIdentifier());;
+					this.intentionTimeoutMap.set(fragment.getIdentifier(), { intention: fragment.intention.getIdentifier(), timeout: timeout });
 				}
+
+
+				var dummyDeal = this.factory.newConcept("top.nextnet.gnb", "BestFragmentDeal")
+				dummyDeal.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", fragment.getIdentifier());
+				var status = { bestDeal: dummyDeal, updated: false };
+
+
+				this.updatedFragments.set(fragment.getIdentifier(), status);
 
 
 
 			}
 			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.PlaceBidEvent") {
-				this.updatedFragments[evt.target.fragment.getIdentifier()] = true;
+				var status = this.updatedFragments.get(evt.target.fragment.getIdentifier())
+				if (status == undefined) {//should not happend, since the broker is aware of the new fragment before the providers
+					var dummyDeal = this.factory.newConcept("top.nextnet.gnb", "BestFragmentDeal")
+					dummyDeal.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", evt.target.fragment.getIdentifier());
+					status = { bestDeal: dummyDeal, updated: true }
+				}
+				else {
+					status.updated = true;
+				}
+
+				this.updatedFragments.set(evt.target.fragment.getIdentifier(), status);
+
+
+			}
+			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentDealEvent") {
+				var deal = evt.target;
+				var status = this.updatedFragments.get(deal.fragment.getIdentifier());
+				status.bestDeal = deal;
+
+
 
 			}
 
-		})
+		});
 
 	}
 

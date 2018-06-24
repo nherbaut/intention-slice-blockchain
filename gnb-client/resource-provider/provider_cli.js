@@ -210,7 +210,7 @@ class SitechainListener {
 	}
 
 
-	handleServiceFragmentDeal(serviceFragment, bestPrice, bestCompetitor) {
+	async handleServiceFragmentDeal(serviceFragment, bestPrice, bestCompetitor) {
 
 
 
@@ -230,7 +230,9 @@ class SitechainListener {
 				var placeBidTransaction = this.factory.newTransaction("top.nextnet.gnb", "PlaceBid");
 				placeBidTransaction.target = bid;
 
+				var start = new Date();
 				await this.bizNetworkConnection.submitTransaction(placeBidTransaction);
+				console.log("Took " + (new Date().getTime() - start.getTime()) + " to place bid for fragment " + serviceFragment.getIdentifier());
 			}
 
 		}
@@ -252,11 +254,11 @@ class SitechainListener {
 			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentDealEvent") {
 				var deal = evt.target;
 				if (deal.bestRP != resourceProviderName) {
-					var serviceFragment = await this.serviceFragmentRegistry.get(deal.framgment.getIdentifier());
+					var serviceFragment = await this.serviceFragmentRegistry.get(deal.fragment.getIdentifier());
 					this.handleServiceFragmentDeal(serviceFragment);
 				}
 				else {
-					console.log(resourceProviderName + "> I'm already best in class for " + deal.framgment.getIdentifier());
+					console.log(resourceProviderName + "> I'm already best in class for " + deal.fragment.getIdentifier());
 				}
 
 			}
