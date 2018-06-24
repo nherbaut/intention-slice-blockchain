@@ -225,7 +225,7 @@ describe('#' + namespace, () => {
             }
 
             service.intention = factory.newRelationship(namespace, "Intention", "Intention3")
-            service.bestFragments = []
+            service.bestBids = []
             await serviceRegistry.add(service);
             var service2 = await serviceRegistry.get("Service1")
             let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
@@ -343,99 +343,91 @@ describe('#' + namespace, () => {
             await bidRegistry.add(bid);
             transaction.target = bid;
             await businessNetworkConnection.submitTransaction(transaction);
+            events.pop().getFullyQualifiedType().should.equal("top.nextnet.gnb.PlaceBidEvent");
         }
 
         {
             await useIdentity("MyBroker");
             transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateServiceFragment');
-            transaction.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            var dummyDeal = factory.newConcept('top.nextnet.gnb', "BestFragmentDeal");
+            dummyDeal.fragment = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", "Service4_0");
+            transaction.bestDeal = dummyDeal;
             await businessNetworkConnection.submitTransaction(transaction);
-            var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
-            var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
-            resultingBestBid.price.should.equal(123);
-            resultingFragment.bestPrice.should.equal(123);
-            resultingFragment.bestRP.getIdentifier().should.equal("fooCorp");
-        }
 
-        {
-            await useIdentity("fooCorp");
-            transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
-            var bid = factory.newResource("top.nextnet.gnb", "Bid", "Bid122");
-            bid.price = 122;
-            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
-            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
-            bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
-            await bidRegistry.add(bid);
-            transaction.target = bid;
-            await businessNetworkConnection.submitTransaction(transaction);
-        }
-
-        {
-            await useIdentity("fooCorp");
-            transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
-            var bid = factory.newResource("top.nextnet.gnb", "Bid", "Bid121");
-            bid.price = 121;
-            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
-            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
-            bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
-            await bidRegistry.add(bid);
-
-            transaction.target = bid;
-            await businessNetworkConnection.submitTransaction(transaction);
-        }
-
-        {
-            await useIdentity("MyBroker");
-            transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateServiceFragment');
-            transaction.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
-            await businessNetworkConnection.submitTransaction(transaction);
-            var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
-            var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
-            resultingBestBid.price.should.equal(121);
-            resultingFragment.bestPrice.should.equal(121);
-            resultingFragment.bestRP.getIdentifier().should.equal("fooCorp");
-
-            var obsobid = await bidRegistry.get("Bid122");
-            //obsobid.obsolete.should.equal(true);
+            events.length.should.equal(1);
+            var evt = events.pop();
+            evt.getFullyQualifiedType().should.equal("top.nextnet.gnb.NewServiceFragmentDealEvent");
+            evt.target.bestPrice.should.equal(123);
+            evt.target.bestRP.getIdentifier().should.equal("fooCorp");
 
         }
 
         {
             await useIdentity("barCorp");
+            bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
             transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
-            var bid = factory.newResource("top.nextnet.gnb", "Bid", "Bid120");
-            bid.price = 120;
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", uuid());
+            bid.price = 122;
             bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
             bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "barCorp");
-            bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
-
             await bidRegistry.add(bid);
             transaction.target = bid;
             await businessNetworkConnection.submitTransaction(transaction);
+            events.pop().getFullyQualifiedType().should.equal("top.nextnet.gnb.PlaceBidEvent");
         }
 
         {
             await useIdentity("MyBroker");
             transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateServiceFragment');
-            transaction.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            var dummyDeal = factory.newConcept('top.nextnet.gnb', "BestFragmentDeal");
+            dummyDeal.fragment = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", "Service4_0");
+            transaction.bestDeal = dummyDeal;
             await businessNetworkConnection.submitTransaction(transaction);
-            var resultingFragment = await serviceFragmentRegistry.get(bid.fragment.getIdentifier());
-            var resultingBestBid = await bidRegistry.get(resultingFragment.bestBid.getIdentifier());
-            resultingBestBid.price.should.equal(120);
-            resultingFragment.bestPrice.should.equal(120);
-            resultingFragment.bestRP.getIdentifier().should.equal("barCorp");
 
-            var obsobid = await bidRegistry.get("Bid120");
-            //obsobid.obsolete.should.equal(false);
+            events.length.should.equal(1);
+            var evt = events.pop();
+            evt.getFullyQualifiedType().should.equal("top.nextnet.gnb.NewServiceFragmentDealEvent");
+            evt.target.bestPrice.should.equal(122);
+            evt.target.bestRP.getIdentifier().should.equal("barCorp");
 
-            var obsobid = await bidRegistry.get("Bid121");
-            //obsobid.obsolete.should.equal(true);
         }
+
+        {
+            await useIdentity("fooCorp");
+            bidRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Bid");
+            transaction = factory.newTransaction('top.nextnet.gnb', 'PlaceBid');
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", uuid());
+            bid.price = 124;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "Service4_0");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            await bidRegistry.add(bid);
+            transaction.target = bid;
+            await businessNetworkConnection.submitTransaction(transaction);
+            events.should.have.lengthOf(1);
+        }
+
+        {
+            await useIdentity("MyBroker");
+            transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateServiceFragment');
+            var dummyDeal = factory.newConcept('top.nextnet.gnb', "BestFragmentDeal");
+            dummyDeal.fragment = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", "Service4_0");
+            transaction.bestDeal = dummyDeal;
+            await businessNetworkConnection.submitTransaction(transaction);
+
+            events.length.should.equal(1);
+            var evt = events.pop();
+            evt.getFullyQualifiedType().should.equal("top.nextnet.gnb.NewServiceFragmentDealEvent");
+            evt.target.bestPrice.should.equal(122);
+            evt.target.bestRP.getIdentifier().should.equal("barCorp");
+
+        }
+
+
     });
 
     it("Arbitrate Service", async () => {
 
-        const prices = { "ServiceA_0": 100, "ServiceA_1": 100, "ServiceA_2": 100, "ServiceA_3": 10, "ServiceA_4": 10, "ServiceA_5": 100, "ServiceA_6": 100, "ServiceB_0": 100, "ServiceB_1": 100, "ServiceB_2": 100, "ServiceB_3": 100, "ServiceB_4": 100, "ServiceB_5": 100, "ServiceB_6": 100 }
+
         await useIdentity("alice");
 
         const intentionRegistry = await businessNetworkConnection.getAssetRegistry("top.nextnet.gnb.Intention");
@@ -468,7 +460,7 @@ describe('#' + namespace, () => {
                 serviceA.slices.push(sr1);
             }
             serviceA.intention = factory.newRelationship(namespace, "Intention", "IntentionZ")
-            serviceA.bestFragments = []
+            serviceA.bestBids = []
             await serviceRegistry.add(serviceA)
         }
 
@@ -486,44 +478,90 @@ describe('#' + namespace, () => {
         }
 
         serviceB.intention = factory.newRelationship(namespace, "Intention", "IntentionZ")
-        serviceB.bestFragments = []
+        serviceB.bestBids = []
         await serviceRegistry.add(serviceB)
 
 
+
+
         {
-            let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
-            transaction.service = factory.newRelationship(namespace, "Service", serviceA.getIdentifier());
-            await businessNetworkConnection.submitTransaction(transaction);
+            let fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", "ServiceA_0");
+            fragment.slices = serviceA.slices;
+            fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", "ServiceA");
+            fragment.intention = serviceA.intention;
+            await serviceFragmentRegistry.add(fragment);
+
         }
+
         {
-            let transaction = factory.newTransaction('top.nextnet.gnb', 'PublishService');
-            transaction.service = factory.newRelationship(namespace, "Service", serviceB.getIdentifier());
-            await businessNetworkConnection.submitTransaction(transaction);
+            let fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", "ServiceA_1");
+            fragment.slices = serviceA.slices.slice(0, 1);
+            fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", "ServiceA");
+            fragment.intention = serviceA.intention;
+            await serviceFragmentRegistry.add(fragment);
+
         }
 
-        const serviceAFragmentQuery = businessNetworkConnection.buildQuery("SELECT top.nextnet.gnb.ServiceFragment WHERE ( service == _$serviceId) ");
-        const serviceAfragments = await businessNetworkConnection.query(serviceAFragmentQuery, { serviceId: "resource:" + serviceA.getFullyQualifiedIdentifier() });
+        {
+            let fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", "ServiceA_2");
+            fragment.slices = serviceA.slices.slice(1, 3);
+            fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", "ServiceA");
+            fragment.intention = serviceA.intention;
+            await serviceFragmentRegistry.add(fragment);
 
-        for (let entry of [...serviceAfragments.entries()]) {
-            var [index, fragment] = entry;
-            fragment.bestPrice = prices[fragment.getIdentifier()]
-            console.debug("Fragment " + fragment.getIdentifier() + " composed of " + fragment.slices.reduce((acc, s) => acc + s.id + " ", "") + " with price " + fragment.bestPrice)
-
-            await serviceFragmentRegistry.update(fragment);
         }
 
 
 
-        const serviceBFragmentQuery = businessNetworkConnection.buildQuery("SELECT top.nextnet.gnb.ServiceFragment WHERE ( service == _$serviceId) ");
-        const serviceBfragments = await businessNetworkConnection.query(serviceBFragmentQuery, { serviceId: "resource:" + serviceB.getFullyQualifiedIdentifier() });
+        {
+            let fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", "ServiceB_0");
+            fragment.slices = serviceA.slices;
+            fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", "ServiceB");
+            fragment.intention = serviceB.intention;
+            await serviceFragmentRegistry.add(fragment);
 
+        }
 
-        for (let entry of [...serviceBfragments.entries()]) {
-            var [index, fragment] = entry;
-            fragment.bestPrice = prices[fragment.getIdentifier()]
-            console.debug("Fragment " + fragment.getIdentifier() + " composed of " + fragment.slices.reduce((acc, s) => acc + s.id + " ", "") + " with price " + fragment.bestPrice)
+        {
+            let fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", "ServiceB_1");
+            fragment.slices = [serviceA.slices[1]];
+            fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", "ServiceB");
+            fragment.intention = serviceB.intention;
+            await serviceFragmentRegistry.add(fragment);
 
-            await serviceFragmentRegistry.update(fragment);
+        }
+
+        {
+            let fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", "ServiceB_2");
+            fragment.slices = [serviceA.slices[0], serviceA.slices[2]];
+            fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", "ServiceB");
+            fragment.intention = serviceB.intention;
+            await serviceFragmentRegistry.add(fragment);
+
+        }
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "BidA_0_0");
+            bid.price = 10;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "ServiceA_0");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            await bidRegistry.add(bid);
+        }
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "BidA_1_0");
+            bid.price = 5;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "ServiceA_1");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            await bidRegistry.add(bid);
+        }
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "BidA_1_1");
+            bid.price = 3;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "ServiceA_2");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            await bidRegistry.add(bid);
         }
 
 
@@ -539,11 +577,124 @@ describe('#' + namespace, () => {
         intentionZ.services.should.have.lengthOf(1);
         var service = await serviceRegistry.get(intentionZ.services[0].getIdentifier());
 
-        service.bestPrice.should.equal(20);
+        var bestBidIds = service.bestBids.map(bid => bid.getIdentifier());
+        var bestFragments = [];
+        var bestPrice = 0;
+        for (let bidId of bestBidIds) {
+            var bid = await bidRegistry.get(bidId);
+            bestFragments.push(bid.fragment.getIdentifier());
+            bestPrice += bid.price;
+        }
+        bestFragments.should.contain("ServiceA_1");
+        bestFragments.should.contain("ServiceA_2");
+        bestPrice.should.equal(8);
+
+
 
         var evt = events.pop();
         evt.getType().should.equal("IntentionResolvedEvent");
         evt.intention.getIdentifier().should.equal("IntentionZ");
+
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "BidB_1_0");
+            bid.price = 10;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "ServiceB_1");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            await bidRegistry.add(bid);
+        }
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "BidB_1_1");
+            bid.price = 2;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "ServiceB_1");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            await bidRegistry.add(bid);
+        }
+
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "BidB_2_0");
+            bid.price = 3;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "ServiceB_2");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            await bidRegistry.add(bid);
+        }
+
+
+        //B service should win
+
+        {
+            let transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateIntention');
+            transaction.intention = factory.newRelationship(namespace, "Intention", intentionZ.getIdentifier());
+            await businessNetworkConnection.submitTransaction(transaction);
+        }
+
+        intentionZ = await intentionRegistry.get(intentionZ.getIdentifier());
+
+        intentionZ.arbitrated.should.equal(true);
+        intentionZ.services.should.have.lengthOf(1);
+        var service = await serviceRegistry.get(intentionZ.services[0].getIdentifier());
+
+        var bestBidIds = service.bestBids.map(bid => bid.getIdentifier());
+        var bestFragments = [];
+        var bestPrice = 0;
+        for (let bidId of bestBidIds) {
+            var bid = await bidRegistry.get(bidId);
+            bestFragments.push(bid.fragment.getIdentifier());
+            bestPrice += bid.price;
+        }
+        bestFragments.should.contain("ServiceB_1");
+        bestFragments.should.contain("ServiceB_2");
+        bestPrice.should.equal(5);
+
+
+
+        var evt = events.pop();
+        evt.getType().should.equal("IntentionResolvedEvent");
+        evt.intention.getIdentifier().should.equal("IntentionZ");
+
+
+        //back to A_0 winning
+
+
+        {
+            var bid = factory.newResource("top.nextnet.gnb", "Bid", "BidA_0_1");
+            bid.price = 2;
+            bid.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", "ServiceA_0");
+            bid.owner = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", "fooCorp");
+            await bidRegistry.add(bid);
+        }
+
+        {
+            let transaction = factory.newTransaction('top.nextnet.gnb', 'ArbitrateIntention');
+            transaction.intention = factory.newRelationship(namespace, "Intention", intentionZ.getIdentifier());
+            await businessNetworkConnection.submitTransaction(transaction);
+        }
+
+        intentionZ = await intentionRegistry.get(intentionZ.getIdentifier());
+
+        intentionZ.arbitrated.should.equal(true);
+        intentionZ.services.should.have.lengthOf(1);
+        var service = await serviceRegistry.get(intentionZ.services[0].getIdentifier());
+
+        var bestBidIds = service.bestBids.map(bid => bid.getIdentifier());
+        var bestFragments = [];
+        var bestPrice = 0;
+        for (let bidId of bestBidIds) {
+            var bid = await bidRegistry.get(bidId);
+            bestFragments.push(bid.fragment.getIdentifier());
+            bestPrice += bid.price;
+        }
+        bestFragments.should.contain("ServiceA_0");
+        bestPrice.should.equal(2);
+
+
+
+        var evt = events.pop();
+        evt.getType().should.equal("IntentionResolvedEvent");
+        evt.intention.getIdentifier().should.equal("IntentionZ");
+
 
     });
 

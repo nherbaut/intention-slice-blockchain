@@ -28,25 +28,27 @@ asset Intention identified by intentionId{
 
 asset Service identified by serviceId{
   o String serviceId
-  o Double bestPrice optional
-  --> ServiceFragment[] bestFragments optional 
-  o Boolean public default=false
-  o DateTime lastUpdate optional
-  --> Intention intention
   o Slice[] slices optional
+  --> Bid[] bestBids optional 
+  --> Intention intention
   
 }
 
 asset ServiceFragment identified by id{
   o String id
-  o Boolean obsolete default=false
   o Slice[] slices
-  o Double bestPrice optional
-  o DateTime lastUpdate optional
+  o BestFragmentDeal bestDeal optional
   --> Service service
   --> Intention intention
+  
+}
+
+concept BestFragmentDeal{
+  o Double bestPrice default=99999999999999.0
   --> ResourceProvider bestRP optional
   --> Bid bestBid optional
+  --> ServiceFragment fragment
+  
 }
 
 concept Slice {
@@ -105,7 +107,8 @@ transaction PlaceBid {
 }
 
 transaction ArbitrateServiceFragment{
-  --> ServiceFragment fragment
+  o BestFragmentDeal bestDeal
+
 }
 
 
@@ -134,6 +137,11 @@ transaction PublishService {
 
 event NewServiceFragmentEvent extends Event{
   o ServiceFragment target
+}
+
+
+event NewServiceFragmentDealEvent extends Event{
+  o BestFragmentDeal target
 }
 
 event IntentionResolvedEvent extends Event{

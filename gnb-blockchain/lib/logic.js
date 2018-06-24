@@ -57,15 +57,18 @@ async function placeBidProcessor(payload) {
  * @transaction 
  */
 async function ArbitrateIntention(payload) {
+    var i = 0;
+    console.log("arbitrate intention");
     var factory = getFactory();
     //get all service for this intention
     let intentionRegistry = await getAssetRegistry("top.nextnet.gnb.Intention");
-    let serviceRegistry = await getAssetRegistry("top.nextnet.gnb.Service");
+
 
     var intentionId = payload.intention.getIdentifier();
     var intention = await intentionRegistry.get(intentionId);
     const aquery = buildQuery('SELECT top.nextnet.gnb.Service WHERE ( intention == _$intention )');
     const services = await query(aquery, { intention: "resource:top.nextnet.gnb.Intention#" + intentionId });
+    var dummyDeal = factory.newConcept("top.nextnet.gnb", "BestFragmentDeal");
 
     var bestIntentionPrice = 99999999;
     var bestService = undefined;
@@ -77,54 +80,87 @@ async function ArbitrateIntention(payload) {
 
         //for each service, get the best fragment
         const bquery = buildQuery('SELECT top.nextnet.gnb.ServiceFragment WHERE ( service == _$service )');
+
         const fragments = await query(bquery, { service: "resource:top.nextnet.gnb.Service#" + service.getIdentifier() });
 
         var combinedFragments = [...subsets(fragments)];
 
+        var winningServiceCombi = undefined;
+        each_combi:
         for (let candidate of combinedFragments) {
+
             var candidateReduced = [];
-            var validCombi = true;
+
             loop1:
-            for (let candidate_fragments of candidate) {
-                for (let slice of candidate_fragments.slices)
+            for (let candidate_fragment of candidate) {
+
+                for (let slice of candidate_fragment.slices) {
+
                     if (-1 == (candidateReduced.indexOf(slice.id))) {
+
                         candidateReduced.push(slice.id);
                     }
                     else {
-                        validCombi = false;
-                        break loop1;
-                    }
-            }
-            if (validCombi && candidateReduced.length == service.slices.length) {
-                var flatCombi = [].concat(...candidate);
 
+                        continue each_combi
+                    }
+                }
+            }
+            //if the combination covers all the service
+            if (candidateReduced.length == service.slices.length) {
+
+
+                var flatCombi = [].concat(...candidate);
+                var flatCombiArbitrated = []
 
                 var combiPrice = 0;
-                for (let item of flatCombi) {
-                    console.log(item.getIdentifier() + " costs " + item.bestPrice) + " total " + combiPrice;
-                    combiPrice += item.bestPrice;
+                //for each fragment in the combination
+                for (let fragment of flatCombi) {
+
+
+                    //get the best price for the fragment
+                    dummyDeal.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", fragment.getIdentifier());
+
+                    var deal = await _arbitrateServiceFragment(dummyDeal);
+                    if (deal == undefined) {
+                        console.log("Damn, no deal for " + fragment.getIdentifier());
+
+                        continue each_combi;
+                    }
+
+                    combiPrice += deal.bestPrice;
+                    flatCombiArbitrated.push(deal);
                 }
-                console.log("###")
-                combiPrice = flatCombi.reduce((acc, fr) => acc + fr.bestPrice, 0);
+
+                combiPrice = flatCombiArbitrated.reduce((acc, deal) => acc + deal.bestPrice, 0);
 
 
-                console.log(" The comglomerate of " + flatCombi.reduce((acc, fr) => acc + fr.getIdentifier() + " ", " ") + " is worht" + combiPrice);
+                console.log(" The comglomerate of " + flatCombiArbitrated.reduce((acc, deal) => acc + deal.fragment.getIdentifier() + " ", " ") + " is worht" + combiPrice);
 
                 if (bestServicePrice > combiPrice) {
                     bestServicePrice = combiPrice;
-                    winningServiceCombi = flatCombi;
+                    winningServiceCombi = flatCombiArbitrated;
+
                 }
+
+
             }
 
-        }
 
-        if (bestServicePrice < bestIntentionPrice) {
-            bestService = service;
-            bestIntentionPrice = bestServicePrice;
-            service.bestPrice = bestServicePrice;
-            service.bestFragments = []
-            for (let frag of winningServiceCombi) {
-                service.bestFragments.push(factory.newRelationship("top.nextnet.gnb", "ServiceFragment", frag.getIdentifier()))
+
+
+            //await serviceRegistry.update(service);
+
+
+            if (bestServicePrice < bestIntentionPrice) {
+                bestService = service;
+                bestIntentionPrice = bestServicePrice;
+
+                bestService.bestBids = []
+                for (let deal of winningServiceCombi) {
+
+                    bestService.bestBids.push(factory.newRelationship("top.nextnet.gnb", "Bid", deal.bestBid.getIdentifier()));
+                }
             }
 
         }
@@ -133,12 +169,18 @@ async function ArbitrateIntention(payload) {
 
 
     if (bestService != undefined) {
+        //?await serviceRegistry.update(bestService);
+
+        let serviceRegistry = await getAssetRegistry("top.nextnet.gnb.Service");
+
         await serviceRegistry.update(bestService);
 
-
         let intentionRepository = await getAssetRegistry("top.nextnet.gnb.Intention");
+
         intention.arbitrated = true;
+
         intention.services = [factory.newRelationship("top.nextnet.gnb", "Service", bestService.getIdentifier())]
+
         await intentionRepository.update(intention);
 
         var basicEvent = factory.newEvent('top.nextnet.gnb', 'IntentionResolvedEvent');
@@ -149,6 +191,68 @@ async function ArbitrateIntention(payload) {
 
 
 }
+
+async function _arbitrateServiceFragment(bestDeal) {
+
+    var i = 0;
+
+    var bestBid;
+    if (bestDeal == undefined) {
+        console.log("weird");
+    }
+    let fragmentId = bestDeal.fragment.getIdentifier();
+    try {
+        var factory = getFactory();
+        const aquery = buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( fragment == _$fragID AND obsolete==false)');
+        const bids = await query(aquery, { fragID: "resource:top.nextnet.gnb.ServiceFragment#" + fragmentId });
+
+
+        var bestPrice = bestDeal.bestPrice;
+        var betterCompetitor = bestDeal.bestRP;
+
+        for (let bid of bids) {
+            if (bid.price < bestPrice) {
+                betterCompetitor = bid.owner;
+                bestPrice = bid.price;
+                bestBid = bid;
+
+            }
+            else {
+                bid.obsolete = true;
+
+            }
+        }
+
+        //let bidRegistry = await getAssetRegistry("top.nextnet.gnb.Bid");
+        //await bidRegistry.updateAll(bids);
+        if (betterCompetitor != bestDeal.bestRP) {
+
+            if (bestPrice == bestDeal.bestPrice) {
+                throw new Error("should not happen");
+            }
+
+            var deal = factory.newConcept("top.nextnet.gnb", "BestFragmentDeal")
+            deal.bestPrice = bestPrice
+            deal.bestRP = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", betterCompetitor.getIdentifier());
+            deal.fragment = factory.newRelationship("top.nextnet.gnb", "ServiceFragment", fragmentId);
+            deal.bestBid = factory.newRelationship("top.nextnet.gnb", "Bid", bestBid.getIdentifier());
+
+
+            return deal;
+
+        }
+
+
+    }
+    catch (err) {
+        console.log("the problem is here " + err);
+        console.log(err.stack)
+    }
+
+    console.log("failed to computer price for segment");
+    return undefined;
+
+}
 /**
  * 
  * @param {top.nextnet.gnb.ArbitrateServiceFragment} payload
@@ -157,44 +261,19 @@ async function ArbitrateIntention(payload) {
 async function arbitrateServiceFragment(payload) {
     var factory = getFactory();
 
-    const aquery = buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( fragment == _$fragID AND obsolete==false)');
-    const bids = await query(aquery, { fragID: "resource:top.nextnet.gnb.ServiceFragment#" + payload.fragment.getIdentifier() });
 
 
-    let serviceFragmentRegistry = await getAssetRegistry("top.nextnet.gnb.ServiceFragment");
 
-    var fragment = await serviceFragmentRegistry.get(payload.fragment.getIdentifier());
+    var deal = await _arbitrateServiceFragment(payload.bestDeal);
 
-    var bestPrice = fragment.bestPrice == undefined ? 99999999 : fragment.bestPrice;
-    var betterCompetitor = undefined;
-    for (let bid of bids) {
-        if (bid.price < bestPrice) {
-            betterCompetitor = bid;
-            bestPrice = bid.price;
 
-        }
-        else {
-            bid.obsolete = true;
 
-        }
-    }
+    if (deal != undefined) {
 
-    //let bidRegistry = await getAssetRegistry("top.nextnet.gnb.Bid");
-    //await bidRegistry.updateAll(bids);
-    if (betterCompetitor != undefined) {
-
-        fragment.bestPrice = bestPrice
-        fragment.bestBid = factory.newRelationship("top.nextnet.gnb", "Bid", betterCompetitor.getIdentifier());
-        fragment.bestRP = factory.newRelationship("top.nextnet.gnb", "ResourceProvider", betterCompetitor.owner.getIdentifier());
-        fragment.lastUpdate = new Date();
-        await serviceFragmentRegistry.update(fragment);
-
-        var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentEvent');
-        //basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
-        basicEvent.target = fragment;
+        var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentDealEvent');
+        basicEvent.target = deal;
         emit(basicEvent);
     }
-
 
 
 
@@ -222,7 +301,7 @@ async function servicePublicationProcessor(payload) {
 
         [id, slice_requests] = entry
 
-        if (slice_requests.length == 0) {
+        if (slice_requests == undefined || slice_requests.length == 0) {
             continue;
         }
         var fragment = factory.newResource("top.nextnet.gnb", "ServiceFragment", payload.service.getIdentifier() + "_" + id)
@@ -232,15 +311,15 @@ async function servicePublicationProcessor(payload) {
 
         }
         fragment.service = factory.newRelationship("top.nextnet.gnb", "Service", payload.service.getIdentifier());
-        fragment.lastUpdate = new Date();
+
         fragments.push(fragment);
         fragment.intention = factory.newRelationship("top.nextnet.gnb", "Intention", payload.service.intention.getIdentifier());
         await serviceFragmentRegistry.add(fragment);
 
         var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentEvent');
-        //basicEvent.target = factory.newRelationship('top.nextnet.gnb', "ServiceFragment", fragment.getIdentifier());
+
         basicEvent.target = fragment;
-        
+
         emit(basicEvent);
     }
 
