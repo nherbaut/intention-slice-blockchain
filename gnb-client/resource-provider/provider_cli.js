@@ -181,10 +181,10 @@ class SitechainListener {
 		return -1;
 
 	}
-	getBidForFragment(fragment) {
+	getBidForFragment(fragment,bestPrice) {
 		let price = 0;
 
-		var bestPrice = fragment.bestPrice == undefined ? 9999999 : fragment.bestPrice
+		var bestPrice = bestPrice == undefined ? 9999999 : bestPrice
 		//get the cost price, if we can't find it, return error (-1)
 		for (let slice of fragment.slices) {
 			var slicePrice = this.getPriceForSlice(slice);
@@ -213,7 +213,7 @@ class SitechainListener {
 	}
 
 
-	async handleServiceFragmentDeal(serviceFragment, bestPrice, bestCompetitor) {
+	async handleServiceFragmentDeal(serviceFragment, bestPrice, bestCompetitorId) {
 
 
 
@@ -221,11 +221,11 @@ class SitechainListener {
 
 			if (serviceFragment.bestRP == undefined || serviceFragment.bestRP.getIdentifier() != resourceProviderName) {//no self concurrence!
 				console.log(resourceProviderName + " > competing for " + serviceFragment.getIdentifier());
-				var myBestPrice = this.getBidForFragment(serviceFragment);
+				var myBestPrice = this.getBidForFragment(serviceFragment,bestPrice);
 
 
 				if (myBestPrice > 0) {
-					console.log("competing with " + bestCompetitor + "  " + bestPrice + " vs " + resourceProviderName + " " + myBestPrice + " for fragment " + serviceFragment.slices.reduce((acc, sl) => acc + " " + sl.src + "-" + sl.dst, " "));
+					console.log("competing with " + bestCompetitorId + "  " + bestPrice + " vs " + resourceProviderName + " " + myBestPrice + " for fragment " + serviceFragment.slices.reduce((acc, sl) => acc + " " + sl.src + "-" + sl.dst, " "));
 					var bid = this.factory.newResource("top.nextnet.gnb", "Bid", uuid().slice(0, 5));
 					bid.price = myBestPrice
 					bid.fragment = this.factory.newRelationship("top.nextnet.gnb", "ServiceFragment", serviceFragment.getIdentifier());
@@ -261,16 +261,16 @@ class SitechainListener {
 			if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentEvent") {
 				var serviceFragment = evt.target;
 				console.log("New Service Fragment Published!" + serviceFragment.getIdentifier());
-				this.handleServiceFragmentDeal(serviceFragment);
+				await this.handleServiceFragmentDeal(serviceFragment);
 			}
 			//a new deal, we try to compete if we didn't win
 			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentDealEvent") {
 				console.log("a new deal is publihed for fragment" + evt.target.fragment.getIdentifier());
 				var deal = evt.target;
-				if (deal.bestRP != resourceProviderName) {
+				if (deal.bestRP.getIdentifier() != resourceProviderName) {
 					var start = new Date();
 					var serviceFragment = await this.serviceFragmentRegistry.get(deal.fragment.getIdentifier());
-					this.handleServiceFragmentDeal(serviceFragment);
+					await this.handleServiceFragmentDeal(serviceFragment,deal.bestPrice,deal.bestRP.getIdentifier());
 					console.log("took " + (new Date().getTime() - start.getTime()) + " to handle to new deal");
 				}
 				else {

@@ -17,7 +17,7 @@ let config = require('config').get('event-app');
 const LOG = winston.loggers.get('application');
 let cardname = config.get('cardname');
 let lock = new AwaitLock();
-const timeoutSFArbitrate = 5 * 1000;
+const timeoutSFArbitrate = 10 * 1000;
 const timeoutIntentArbitrate = 100 * 1000;
 
 var rnoptions = {
@@ -72,7 +72,7 @@ class SitechainListener {
 		var intentionData = intention.intentionData
 
 		var services = []
-		for (let i of [0]) {
+		for (let i of [0, 1, 2]) {
 			var id = uuid().slice(0, 5);
 			var service = this.factory.newResource("top.nextnet.gnb", "Service", id);
 			service.serviceId = id
@@ -111,8 +111,8 @@ class SitechainListener {
 
 
 			}
-			else{
-				console.log("no update on fragment " + fragmentId+" skipping")
+			else {
+				//console.log("no update on fragment " + fragmentId+" skipping")
 			}
 		}
 		catch (err) {
@@ -241,7 +241,7 @@ class SitechainListener {
 					status.updated = true;
 				}
 
-				
+
 
 
 			}
