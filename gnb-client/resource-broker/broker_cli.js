@@ -17,8 +17,8 @@ let config = require('config').get('event-app');
 const LOG = winston.loggers.get('application');
 let cardname = config.get('cardname');
 let lock = new AwaitLock();
-const timeoutSFArbitrate = 1 * 1000;
-const timeoutIntentArbitrate = 30 * 1000;
+const timeoutSFArbitrate = 5 * 1000;
+const timeoutIntentArbitrate = 100 * 1000;
 
 var rnoptions = {
 	min: 0
@@ -111,6 +111,9 @@ class SitechainListener {
 
 
 			}
+			else{
+				console.log("no update on fragment " + fragmentId+" skipping")
+			}
 		}
 		catch (err) {
 			console.log("failed to arbitrate Service Fragment  " + err);
@@ -128,10 +131,11 @@ class SitechainListener {
 			console.log("arbitrating intention " + intention.getIdentifier());
 			var arbitrateIntention = this.factory.newTransaction("top.nextnet.gnb", "ArbitrateIntention");
 			arbitrateIntention.intention = this.factory.newRelationship("top.nextnet.gnb", "Intention", intention.getIdentifier());
-			await this.bizNetworkConnection.submitTransaction(arbitrateIntention)
-			for (var timeout of Array.from(this.intentionTimeoutMap.entries()).filter(entry => entry[1].intention == intention.getIdentifier()).map(entry => entry[0])) {
+			await this.bizNetworkConnection.submitTransaction(arbitrateIntention);
+			for (var fragmentId of Array.from(this.intentionTimeoutMap.entries()).filter(entry => entry[1].intention == intention.getIdentifier()).map(entry => entry[0])) {
+				var timeout = this.intentionTimeoutMap.get(fragmentId).timeout;
 				clearInterval(timeout);
-				this.intentionTimeoutMap.delete(timeout);
+				this.intentionTimeoutMap.delete(fragmentId);
 			}
 
 
@@ -146,12 +150,13 @@ class SitechainListener {
 
 				var bestPrice = 0.0;
 				for (let bidId of winnserService.bestBids) {
-					var bid = this.bidRegistry.resolve(bidId.getIdentifier());
+					var bid = await this.bidRegistry.resolve(bidId.getIdentifier());
 					bids.push(bid);
 					bestPrice += bid.price;
+					console.log("Winning Fragment : " + bid.fragment.id + " for slices " + bid.fragment.slices.map(obj => obj.dst + "-" + obj.src).reduce((acc, item) => acc + " " + item, "") + " by " + bid.owner.id);
 				}
 				console.log(" Best price is " + bestPrice);
-				bids.map(bid => { bid.fragment }).map(frag => { console.log(frag) });
+
 
 
 			}
@@ -183,18 +188,16 @@ class SitechainListener {
 
 
 				var services = this.generate_services(intention);
-
+				await this.serviceRegistry.addAll(services)
 				for (let service of services) {
 
 					var service_id = service.getIdentifier();
-					service = await this.serviceRegistry.add(service)
-
-
 					var newServiceEvent = this.factory.newEvent("top.nextnet.gnb", "NewServiceEvent");
 					newServiceEvent.target = this.factory.newRelationship("top.nextnet.gnb", "Service", service_id);
 					//this.bizNetworkConnection.emit(newServiceEvent);
 					var publishServiceTransaction = this.factory.newTransaction("top.nextnet.gnb", "PublishService");
 					publishServiceTransaction.service = this.factory.newRelationship("top.nextnet.gnb", "Service", service_id);
+
 					await this.bizNetworkConnection.submitTransaction(publishServiceTransaction);
 					console.log("a Service has been published " + publishServiceTransaction.getIdentifier());
 				};
@@ -227,6 +230,7 @@ class SitechainListener {
 
 			}
 			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.PlaceBidEvent") {
+				console.log("new PlaceBidEvent " + evt.target.fragment.getIdentifier());
 				var status = this.updatedFragments.get(evt.target.fragment.getIdentifier())
 				if (status == undefined) {//should not happend, since the broker is aware of the new fragment before the providers
 					var dummyDeal = this.factory.newConcept("top.nextnet.gnb", "BestFragmentDeal")
@@ -237,11 +241,12 @@ class SitechainListener {
 					status.updated = true;
 				}
 
-				this.updatedFragments.set(evt.target.fragment.getIdentifier(), status);
+				
 
 
 			}
 			else if (evt.getFullyQualifiedType() == "top.nextnet.gnb.NewServiceFragmentDealEvent") {
+				console.log("NewServiceFragmentDealEvent " + evt.target.fragment.getIdentifier());
 				var deal = evt.target;
 				var status = this.updatedFragments.get(deal.fragment.getIdentifier());
 				status.bestDeal = deal;

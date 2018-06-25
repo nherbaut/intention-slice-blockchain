@@ -3,7 +3,7 @@
     "composer": "^0.19.5"
   },
   "name": "gnb",
-  "version": "0.0.133",
+  "version": "0.0.135",
   "description": "gnb",
   "scripts": {
     "prepublish": "mkdirp ./dist && composer archive create --sourceType dir --sourceName . -a ./dist/gnb.bna",

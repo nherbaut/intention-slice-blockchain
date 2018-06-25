@@ -45,7 +45,6 @@ function* subsets(array, offset = 0) {
 async function placeBidProcessor(payload) {
 
     var factory = getFactory();
-
     var basicEvent = factory.newEvent('top.nextnet.gnb', 'PlaceBidEvent');
     basicEvent.target = payload.target;
     emit(basicEvent);
@@ -204,7 +203,9 @@ async function _arbitrateServiceFragment(bestDeal) {
     try {
         var factory = getFactory();
         const aquery = buildQuery('SELECT top.nextnet.gnb.Bid WHERE ( fragment == _$fragID AND obsolete==false)');
+        var start = new Date();
         const bids = await query(aquery, { fragID: "resource:top.nextnet.gnb.ServiceFragment#" + fragmentId });
+        console.log("NHE bid query" + (new Date().getTime() - start.getTime()));
 
 
         var bestPrice = bestDeal.bestPrice;
@@ -263,9 +264,9 @@ async function arbitrateServiceFragment(payload) {
 
 
 
-
+    var start = new Date();
     var deal = await _arbitrateServiceFragment(payload.bestDeal);
-
+    console.log("NHE arbitrateServuceFragment _" + (new Date().getTime() - start.getTime()));
 
 
     if (deal != undefined) {
@@ -273,6 +274,7 @@ async function arbitrateServiceFragment(payload) {
         var basicEvent = factory.newEvent('top.nextnet.gnb', 'NewServiceFragmentDealEvent');
         basicEvent.target = deal;
         emit(basicEvent);
+        console.log("NHE " + new Date().getTime() + " > new deal for " + deal.fragment.getIdentifier() + " was published")
     }
 
 
