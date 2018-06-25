@@ -17,8 +17,8 @@ let config = require('config').get('event-app');
 const LOG = winston.loggers.get('application');
 let cardname = config.get('cardname');
 let lock = new AwaitLock();
-const timeoutSFArbitrate = 10 * 1000;
-const timeoutIntentArbitrate = 100 * 1000;
+const timeoutSFArbitrate = 5 * 1000;
+const timeoutIntentArbitrate = 60 * 1000;
 
 var rnoptions = {
 	min: 0

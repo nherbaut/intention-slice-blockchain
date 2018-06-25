@@ -1,7 +1,7 @@
 {
   "event-app": {
        "businessNetworkIdentifier" : "gnb",
-       "cardname" : "RPcharlieCorp@gnb",
-       "netname" : "net.RPcharlieCorp@gnb.yaml"
+       "cardname" : "RPbobCorp@gnb",
+       "netname" : "net.RPbobCorp@gnb.yaml"
   }
 }
